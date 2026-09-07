@@ -1,0 +1,85 @@
+﻿@model ApplicationUser
+@{
+    ViewData["Title"] = "My Dashboard";
+}
+
+<div class="row">
+    <div class="col-md-4">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Profile Photo</h5>
+            </div>
+            <div class="card-body text-center">
+                @if (!string.IsNullOrEmpty(Model.PhotoPath))
+                {
+                    <img src="@Model.PhotoPath" alt="Profile Photo" class="img-fluid rounded-circle" style="max-width:200px;" />
+                }
+                else
+                {
+                    <p>No photo uploaded</p>
+                }
+            </div>
+        </div>
+    </div>
+    <div class="col-md-8">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">My Profile</h5>
+            </div>
+            <div class="card-body">
+                <dl class="row">
+                    <dt class="col-sm-4">Full Name</dt>
+                    <dd class="col-sm-8">@Model.FullName</dd>
+
+                    <dt class="col-sm-4">Email</dt>
+                    <dd class="col-sm-8">@Model.Email</dd>
+
+                    <dt class="col-sm-4">Father's Name</dt>
+                    <dd class="col-sm-8">@Model.FatherName</dd>
+
+                    <dt class="col-sm-4">Mother's Name</dt>
+                    <dd class="col-sm-8">@Model.MotherName</dd>
+
+                    <dt class="col-sm-4">Date of Birth</dt>
+                    <dd class="col-sm-8">@Model.DateOfBirth?.ToString("dd MMM yyyy")</dd>
+
+                    <dt class="col-sm-4">Gender</dt>
+                    <dd class="col-sm-8">@Model.Gender</dd>
+
+                    <dt class="col-sm-4">Nationality</dt>
+                    <dd class="col-sm-8">@Model.Nationality</dd>
+
+                    <dt class="col-sm-4">Religion</dt>
+                    <dd class="col-sm-8">@Model.Religion</dd>
+
+                    <dt class="col-sm-4">Occupation</dt>
+                    <dd class="col-sm-8">@Model.Occupation</dd>
+
+                    <dt class="col-sm-4">Blood Group</dt>
+                    <dd class="col-sm-8">@Model.BloodGroup</dd>
+
+                    <dt class="col-sm-4">Present Address</dt>
+                    <dd class="col-sm-8">@Model.PresentAddress</dd>
+
+                    <dt class="col-sm-4">Permanent Address</dt>
+                    <dd class="col-sm-8">@Model.PermanentAddress</dd>
+
+                    <dt class="col-sm-4">NID Number</dt>
+                    <dd class="col-sm-8">@(Model.NIDNumber ?? "Pending")</dd>
+
+                    <dt class="col-sm-4">Status</dt>
+                    <dd class="col-sm-8">
+                        @if (Model.IsApproved)
+                        {
+                            <span class="badge bg-success">Approved</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-warning text-dark">Pending Approval</span>
+                        }
+                    </dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+</div>

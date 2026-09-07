@@ -1,0 +1,46 @@
+﻿@{
+    ViewData["Title"] = "Home";
+}
+
+<div class="text-center py-5">
+    <h1 class="display-4 fw-bold">National ID Card Management System</h1>
+    <p class="lead mt-3">Apply for your NID, manage your profile, and get your digital National Identity Card.</p>
+    <div class="mt-4">
+        @if (!User.Identity.IsAuthenticated)
+        {
+            <a class="btn btn-primary btn-lg me-2" asp-controller="Account" asp-action="Register">Apply for NID</a>
+            <a class="btn btn-outline-primary btn-lg" asp-controller="Account" asp-action="Login">Login</a>
+        }
+        else
+        {
+            <a class="btn btn-primary btn-lg" asp-controller="User" asp-action="Dashboard">Go to Dashboard</a>
+        }
+    </div>
+</div>
+
+<div class="row mt-5">
+    <div class="col-md-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <h5 class="card-title">Secure Registration</h5>
+                <p class="card-text">Your personal information is protected and stored securely.</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <h5 class="card-title">Digital NID</h5>
+                <p class="card-text">Get your digital NID card once approved.</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <h5 class="card-title">Easy Updates</h5>
+                <p class="card-text">Update your information anytime with approval from moderators.</p>
+            </div>
+        </div>
+    </div>
+</div>

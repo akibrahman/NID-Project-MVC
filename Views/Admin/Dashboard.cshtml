@@ -1,0 +1,25 @@
+﻿@{
+    ViewData["Title"] = "Admin Dashboard";
+}
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">Admin Dashboard</h4>
+            </div>
+            <div class="card-body">
+                <h5>Welcome, Admin!</h5>
+                <p>You can manage moderators and oversee the NID system.</p>
+                <a class="btn btn-success" asp-controller="Admin" asp-action="CreateModerator">Create Moderator</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success mt-3">
+        @TempData["SuccessMessage"]
+    </div>
+}
