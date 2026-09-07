@@ -2,8 +2,9 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using NID_Project.Models;
+using Microsoft.EntityFrameworkCore;
+using System;
 using System.Linq;
-using System.Threading.Tasks;
 
 namespace NID_Project.Controllers
 {
@@ -40,17 +41,54 @@ namespace NID_Project.Controllers
             return View(pendingUsers);
         }
 
+        private async Task<string> GenerateUniqueNidNumber()
+        {
+            var random = new Random();
+            const int maxAttempts = 20;
+            for (int i = 0; i < maxAttempts; i++)
+            {
+                // Generate random 10-digit number (first digit not zero)
+                string candidate = random.Next(1000000000, 1000000000 + 900000000).ToString(); // 1,000,000,000 to 9,999,999,999? Actually 1000000000 to 1999999999? Need fix.
+                                                                                               // Better: generate from 1000000000 to 9999999999
+                long number = random.NextInt64(1000000000L, 10000000000L); // 10 digits, lower bound inclusive, upper exclusive
+                candidate = number.ToString();
+
+                // Check uniqueness
+                bool exists = await _userManager.Users.AnyAsync(u => u.NIDNumber == candidate);
+                if (!exists)
+                    return candidate;
+            }
+            return null; // or throw exception; for now return null to indicate failure
+        }
+
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ApproveUser(string id)
         {
             if (await IsBlocked()) return RedirectToAction("Blocked");
+
             var user = await _userManager.FindByIdAsync(id);
             if (user != null && !user.IsApproved)
             {
+                // Generate unique 10-digit NID number
+                string nidNumber = await GenerateUniqueNidNumber();
+                if (nidNumber == null)
+                {
+                    TempData["ErrorMessage"] = "Could not generate a unique NID number. Please try again.";
+                    return RedirectToAction("PendingUsers");
+                }
+
+                user.NIDNumber = nidNumber;
                 user.IsApproved = true;
-                await _userManager.UpdateAsync(user);
-                TempData["SuccessMessage"] = "User approved successfully.";
+                var updateResult = await _userManager.UpdateAsync(user);
+                if (updateResult.Succeeded)
+                {
+                    TempData["SuccessMessage"] = $"User approved successfully. NID Number: {nidNumber}";
+                }
+                else
+                {
+                    TempData["ErrorMessage"] = "Failed to update user.";
+                }
             }
             return RedirectToAction("PendingUsers");
         }
