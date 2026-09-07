@@ -67,11 +67,15 @@
                     <dt class="col-sm-4">NID Number</dt>
                     <dd class="col-sm-8">@(Model.NIDNumber ?? "Pending")</dd>
 
-                    <dt class="col-sm-4">Status</dt>
+                    <dt class="col-sm-4">Account Status</dt>
                     <dd class="col-sm-8">
-                        @if (Model.IsApproved)
+                        @if (Model.IsBlocked)
                         {
-                            <span class="badge bg-success">Approved</span>
+                            <span class="badge bg-danger">Blocked</span>
+                        }
+                        else if (Model.IsApproved)
+                        {
+                            <span class="badge bg-success">Active</span>
                         }
                         else
                         {
