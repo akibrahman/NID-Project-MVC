@@ -82,7 +82,18 @@
                             <span class="badge bg-warning text-dark">Pending Approval</span>
                         }
                     </dd>
-                </dl>
+                </dl>           
+            @if (TempData["ErrorMessage"] != null)
+            {
+                <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+            }
+
+            @if (Model.IsApproved && !Model.IsBlocked)
+            {
+                <div class="mb-3">
+                    <a class="btn btn-primary" asp-action="DownloadNidPdf">Download NID PDF</a>
+                </div>
+            }
             </div>
         </div>
     </div>

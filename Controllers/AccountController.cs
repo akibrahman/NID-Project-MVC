@@ -38,6 +38,30 @@ namespace NID_Project.Controllers
         {
             if (ModelState.IsValid)
             {
+                // Validate photo file type
+                if (model.Photo != null)
+                {
+                    var allowedExtensions = new[] { ".jpg", ".jpeg", ".png" };
+                    var extension = Path.GetExtension(model.Photo.FileName).ToLowerInvariant();
+                    if (!allowedExtensions.Contains(extension))
+                    {
+                        ModelState.AddModelError("Photo", "Only JPG, JPEG, or PNG files are allowed.");
+                    }
+                    else
+                    {
+                        // Optionally check MIME type (content type) as well
+                        var allowedContentTypes = new[] { "image/jpeg", "image/png" };
+                        if (!allowedContentTypes.Contains(model.Photo.ContentType.ToLowerInvariant()))
+                        {
+                            ModelState.AddModelError("Photo", "Invalid image type. Only JPG, JPEG, or PNG are allowed.");
+                        }
+                    }
+                }
+
+                if (!ModelState.IsValid)
+                {
+                    return View(model);
+                }
                 // Handle photo upload
                 string? photoPath = null;
                 if (model.Photo != null)

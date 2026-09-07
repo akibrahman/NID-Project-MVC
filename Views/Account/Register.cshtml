@@ -101,7 +101,7 @@
                     </div>
                     <div class="mb-3">
                         <label asp-for="Photo" class="form-label"></label>
-                        <input asp-for="Photo" type="file" class="form-control" accept="image/*" />
+                        <input asp-for="Photo" type="file" class="form-control" accept=".jpg,.jpeg,.png" />
                     </div>
                     <div class="d-grid">
                         <button type="submit" class="btn btn-primary btn-lg">Register</button>
@@ -116,4 +116,17 @@
     @{
         await Html.RenderPartialAsync("_ValidationScriptsPartial");
     }
+    <script>
+        document.querySelector('form').addEventListener('submit', function (e) {
+            var fileInput = document.querySelector('input[type="file"]');
+            if (fileInput && fileInput.files.length > 0) {
+                var fileName = fileInput.files[0].name;
+                var ext = fileName.split('.').pop().toLowerCase();
+                if (['jpg', 'jpeg', 'png'].indexOf(ext) === -1) {
+                    e.preventDefault();
+                    alert('Only JPG, JPEG, or PNG files are allowed.');
+                }
+            }
+        });
+    </script>
 }
