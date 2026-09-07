@@ -1,0 +1,26 @@
+﻿@model ApplicationUser
+@{
+    ViewData["Title"] = "Moderator Dashboard";
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <div class="card shadow">
+            <div class="card-header bg-success text-white">
+                <h4 class="mb-0">Moderator Dashboard</h4>
+            </div>
+            <div class="card-body">
+                <h5>Welcome, @Model.FullName!</h5>
+                <p>You have moderator privileges. You can manage NID applications and user profiles.</p>
+                <hr />
+                <dl class="row">
+                    <dt class="col-sm-3">Email</dt>
+                    <dd class="col-sm-9">@Model.Email</dd>
+                    <dt class="col-sm-3">Full Name</dt>
+                    <dd class="col-sm-9">@Model.FullName</dd>
+                </dl>
+                <!-- Later you can add functionality to manage users, approve NIDs, etc. -->
+            </div>
+        </div>
+    </div>
+</div>

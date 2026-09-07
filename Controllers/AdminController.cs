@@ -2,6 +2,8 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using NID_Project.Models;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace NID_Project.Controllers
@@ -16,9 +18,11 @@ namespace NID_Project.Controllers
             _userManager = userManager;
         }
 
-        public IActionResult Dashboard()
+        public async Task<IActionResult> Dashboard()
         {
-            return View();
+            // Get all users in Moderator role
+            var moderators = await _userManager.GetUsersInRoleAsync("Moderator");
+            return View(moderators);
         }
 
         [HttpGet]
