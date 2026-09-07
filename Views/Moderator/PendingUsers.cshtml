@@ -1,0 +1,45 @@
+﻿@model IEnumerable<ApplicationUser>
+@{
+    ViewData["Title"] = "Pending User Approvals";
+}
+
+<div class="container">
+    <h2>Pending Users</h2>
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+    }
+    @if (!Model.Any())
+    {
+        <p>No pending users.</p>
+    }
+    else
+    {
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Full Name</th>
+                    <th>Email</th>
+                    <th>Date of Birth</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var user in Model)
+                {
+                    <tr>
+                        <td>@user.FullName</td>
+                        <td>@user.Email</td>
+                        <td>@user.DateOfBirth?.ToString("dd MMM yyyy")</td>
+                        <td>
+                            <form asp-action="ApproveUser" method="post" class="d-inline">
+                                <input type="hidden" name="id" value="@user.Id" />
+                                <button type="submit" class="btn btn-success btn-sm">Approve</button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>

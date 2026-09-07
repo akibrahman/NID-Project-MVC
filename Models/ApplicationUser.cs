@@ -41,5 +41,6 @@ namespace NID_Project.Models
         public string? NIDNumber { get; set; }
 
         public bool IsApproved { get; set; } = false;
+        public bool IsBlocked { get; set; } = false;
     }
 }

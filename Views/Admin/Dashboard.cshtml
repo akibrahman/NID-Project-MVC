@@ -27,6 +27,8 @@
                             <tr>
                                 <th>Full Name</th>
                                 <th>Email</th>
+                                <th>Status</th>
+                                <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -35,6 +37,32 @@
                                 <tr>
                                     <td>@moderator.FullName</td>
                                     <td>@moderator.Email</td>
+                                    <td>
+                                        @if (moderator.IsBlocked)
+                                        {
+                                            <span class="badge bg-danger">Blocked</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-success">Active</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (moderator.IsBlocked)
+                                        {
+                                            <form asp-action="UnblockModerator" method="post" class="d-inline">
+                                                <input type="hidden" name="id" value="@moderator.Id" />
+                                                <button type="submit" class="btn btn-success btn-sm">Unblock</button>
+                                            </form>
+                                        }
+                                        else
+                                        {
+                                            <form asp-action="BlockModerator" method="post" class="d-inline">
+                                                <input type="hidden" name="id" value="@moderator.Id" />
+                                                <button type="submit" class="btn btn-warning btn-sm">Block</button>
+                                            </form>
+                                        }
+                                    </td>
                                 </tr>
                             }
                         </tbody>

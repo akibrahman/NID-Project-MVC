@@ -1,0 +1,64 @@
+﻿@model IEnumerable<ApplicationUser>
+@{
+    ViewData["Title"] = "All Approved Users";
+}
+
+<div class="container">
+    <h2>All Approved Users</h2>
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+    }
+    @if (!Model.Any())
+    {
+        <p>No approved users found.</p>
+    }
+    else
+    {
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Full Name</th>
+                    <th>Email</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var user in Model)
+                {
+                    <tr>
+                        <td>@user.FullName</td>
+                        <td>@user.Email</td>
+                        <td>
+                            @if (user.IsBlocked)
+                            {
+                                <span class="badge bg-danger">Blocked</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-success">Active</span>
+                            }
+                        </td>
+                        <td>
+                            @if (user.IsBlocked)
+                            {
+                                <form asp-action="UnblockUser" method="post" class="d-inline">
+                                    <input type="hidden" name="id" value="@user.Id" />
+                                    <button type="submit" class="btn btn-success btn-sm">Unblock</button>
+                                </form>
+                            }
+                            else
+                            {
+                                <form asp-action="BlockUser" method="post" class="d-inline">
+                                    <input type="hidden" name="id" value="@user.Id" />
+                                    <button type="submit" class="btn btn-warning btn-sm">Block</button>
+                                </form>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>

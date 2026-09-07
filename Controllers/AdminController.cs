@@ -2,7 +2,6 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using NID_Project.Models;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -20,7 +19,6 @@ namespace NID_Project.Controllers
 
         public async Task<IActionResult> Dashboard()
         {
-            // Get all users in Moderator role
             var moderators = await _userManager.GetUsersInRoleAsync("Moderator");
             return View(moderators);
         }
@@ -60,6 +58,34 @@ namespace NID_Project.Controllers
             }
 
             return View(model);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> BlockModerator(string id)
+        {
+            var mod = await _userManager.FindByIdAsync(id);
+            if (mod != null && await _userManager.IsInRoleAsync(mod, "Moderator"))
+            {
+                mod.IsBlocked = true;
+                await _userManager.UpdateAsync(mod);
+                TempData["SuccessMessage"] = "Moderator blocked.";
+            }
+            return RedirectToAction("Dashboard");
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> UnblockModerator(string id)
+        {
+            var mod = await _userManager.FindByIdAsync(id);
+            if (mod != null && await _userManager.IsInRoleAsync(mod, "Moderator"))
+            {
+                mod.IsBlocked = false;
+                await _userManager.UpdateAsync(mod);
+                TempData["SuccessMessage"] = "Moderator unblocked.";
+            }
+            return RedirectToAction("Dashboard");
         }
     }
 }

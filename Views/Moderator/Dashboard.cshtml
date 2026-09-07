@@ -11,7 +11,8 @@
             </div>
             <div class="card-body">
                 <h5>Welcome, @Model.FullName!</h5>
-                <p>You have moderator privileges. You can manage NID applications and user profiles.</p>
+                <p>You have moderator privileges.</p>
+                <a class="btn btn-primary mb-3" asp-action="PendingUsers">Review Pending Users</a>
                 <hr />
                 <dl class="row">
                     <dt class="col-sm-3">Email</dt>
@@ -19,7 +20,6 @@
                     <dt class="col-sm-3">Full Name</dt>
                     <dd class="col-sm-9">@Model.FullName</dd>
                 </dl>
-                <!-- Later you can add functionality to manage users, approve NIDs, etc. -->
             </div>
         </div>
     </div>
