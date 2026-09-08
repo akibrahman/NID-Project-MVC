@@ -1,4 +1,5 @@
-﻿@model IEnumerable<ApplicationUser>
+﻿@using NID_Project.Models
+@model PaginatedList<ApplicationUser>
 @{
     ViewData["Title"] = "All Approved Users";
 }
@@ -61,5 +62,23 @@
                 }
             </tbody>
         </table>
+
+        // Pagination controls
+        <nav aria-label="User pagination">
+            <ul class="pagination justify-content-center">
+                <li class="page-item @(Model.HasPreviousPage ? "" : "disabled")">
+                    <a class="page-link" asp-action="AllUsers" asp-route-pageNumber="@(Model.PageIndex - 1)">Previous</a>
+                </li>
+                @for (int i = 1; i <= Model.TotalPages; i++)
+                {
+                    <li class="page-item @(i == Model.PageIndex ? "active" : "")">
+                        <a class="page-link" asp-action="AllUsers" asp-route-pageNumber="@i">@i</a>
+                    </li>
+                }
+                <li class="page-item @(Model.HasNextPage ? "" : "disabled")">
+                    <a class="page-link" asp-action="AllUsers" asp-route-pageNumber="@(Model.PageIndex + 1)">Next</a>
+                </li>
+            </ul>
+        </nav>
     }
 </div>

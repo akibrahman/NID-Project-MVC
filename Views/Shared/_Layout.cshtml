@@ -3,69 +3,81 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - NID Management</title>
+    <title>@ViewData["Title"] - NID-IMS</title>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <!-- Bootstrap Icons (optional for logo) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 </head>
-<body>
+<body class="d-flex flex-column min-vh-100">
     <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
-            <div class="container-fluid">
-                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">NID Management</a>
+        <nav class="navbar navbar-expand-sm navbar-light custom-navbar shadow-sm">
+            <div class="container-fluid px-4">
+                <!-- Logo and Brand -->
+                <a class="navbar-brand d-flex align-items-center" asp-area="" asp-controller="Home" asp-action="Index">
+                    <a class="navbar-brand d-flex align-items-center" asp-area="" asp-controller="Home" asp-action="Index">
+                        <img src="~/images/logo.png" alt="Logo" class="logo-img me-2" />
+                        <span class="fw-bold">NID-IMS</span>
+                    </a>
+                </a>
+
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
                         aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
                 </button>
+
                 <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                    <ul class="navbar-nav flex-grow-1">
+                    <!-- Left Navigation Links -->
+                    <ul class="navbar-nav flex-grow-1 mt-2 mt-sm-0">
                         <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
+                            <a class="nav-link custom-nav-link" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
                         </li>
                         @if (User.Identity.IsAuthenticated)
                         {
                             @if (User.IsInRole("Admin"))
                             {
                                 <li class="nav-item">
-                                    <a class="nav-link text-dark" asp-controller="Admin" asp-action="Dashboard">Admin Dashboard</a>
+                                    <a class="nav-link custom-nav-link" asp-controller="Admin" asp-action="Dashboard">Admin Dashboard</a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="nav-link text-dark" asp-controller="Admin" asp-action="CreateModerator">Create Moderator</a>
+                                    <a class="nav-link custom-nav-link" asp-controller="Admin" asp-action="CreateModerator">Create Moderator</a>
                                 </li>
                             }
                             @if (User.IsInRole("Moderator"))
                             {
                                 <li class="nav-item">
-                                    <a class="nav-link text-dark" asp-controller="Moderator" asp-action="Dashboard">Moderator Dashboard</a>
+                                    <a class="nav-link custom-nav-link" asp-controller="Moderator" asp-action="Dashboard">Moderator Dashboard</a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="nav-link text-dark" asp-controller="Moderator" asp-action="PendingUsers">Pending Users</a>
+                                    <a class="nav-link custom-nav-link" asp-controller="Moderator" asp-action="PendingUsers">Pending Users</a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="nav-link text-dark" asp-controller="Moderator" asp-action="AllUsers">All Users</a>
+                                    <a class="nav-link custom-nav-link" asp-controller="Moderator" asp-action="AllUsers">All Users</a>
                                 </li>
                             }
                             @if (User.IsInRole("User"))
                             {
                                 <li class="nav-item">
-                                    <a class="nav-link text-dark" asp-controller="User" asp-action="Dashboard">My Dashboard</a>
+                                    <a class="nav-link custom-nav-link" asp-controller="User" asp-action="Dashboard">My Dashboard</a>
                                 </li>
                             }
                         }
                     </ul>
-                    <!-- Right side: aligned items and buttons -->
-                    <div class="d-flex align-items-center gap-2">
+
+                    <!-- Right Side: User Info and Auth Buttons -->
+                    <div class="d-flex align-items-center gap-2 mt-2 mt-sm-0">
                         @if (User.Identity.IsAuthenticated)
                         {
-                            <span class="navbar-text text-dark">
-                                Hello, @(User.FindFirst("FullName")?.Value ?? User.Identity.Name)!
+                            <span class="navbar-text text-dark me-2">
+                                Hello, <strong>@(User.FindFirst("FullName")?.Value ?? User.Identity.Name)</strong>!
                             </span>
                             <form class="m-0" asp-controller="Account" asp-action="Logout" method="post">
-                                <button type="submit" class="btn btn-danger btn-sm">Logout</button>
+                                <button type="submit" class="btn btn-outline-danger btn-sm">Logout</button>
                             </form>
                         }
                         else
                         {
-                            <a class="btn btn-outline-primary btn-sm" asp-controller="Account" asp-action="Register">Register</a>
+                            <a class="btn btn-outline-primary btn-sm me-1" asp-controller="Account" asp-action="Register">Register</a>
                             <a class="btn btn-primary btn-sm" asp-controller="Account" asp-action="Login">Login</a>
                         }
                     </div>
@@ -73,15 +85,51 @@
             </div>
         </nav>
     </header>
-    <div class="container">
-        <main role="main" class="pb-3">
-            @RenderBody()
-        </main>
-    </div>
 
-    <footer class="border-top footer text-muted">
+    <!-- Main Content - flex-grow-1 ensures fills remaining height -->
+    <main role="main" class="flex-grow-1">
+        <div class="container py-3">
+            @RenderBody()
+        </div>
+    </main>
+
+    <!-- Enhanced Footer -->
+    <footer class="footer mt-auto py-4 bg-dark text-white">
         <div class="container">
-            &copy; 2026 - NID Management System
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <h5 class="text-uppercase fw-bold">NID Management</h5>
+                    <p class="small">Secure, efficient, and user-friendly National Identity Card management system.</p>
+                </div>
+                <div class="col-md-2 mb-3">
+                    <h6 class="text-uppercase">Quick Links</h6>
+                    <ul class="list-unstyled small">
+                        <li><a class="text-white-50 text-decoration-none" asp-controller="Home" asp-action="Index">Home</a></li>
+                        <li><a class="text-white-50 text-decoration-none" asp-controller="Account" asp-action="Register">Register</a></li>
+                        <li><a class="text-white-50 text-decoration-none" asp-controller="Account" asp-action="Login">Login</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <h6 class="text-uppercase">Contact</h6>
+                    <ul class="list-unstyled small text-white-50">
+                        <li><i class="bi bi-envelope me-1"></i> support@nid.gov</li>
+                        <li><i class="bi bi-telephone me-1"></i> +880 123 456 789</li>
+                        <li><i class="bi bi-geo-alt me-1"></i> Dhaka, Bangladesh</li>
+                    </ul>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <h6 class="text-uppercase">Follow Us</h6>
+                    <div class="social-links">
+                        <a href="#" class="text-white-50 me-2"><i class="bi bi-facebook fs-5"></i></a>
+                        <a href="#" class="text-white-50 me-2"><i class="bi bi-twitter-x fs-5"></i></a>
+                        <a href="#" class="text-white-50 me-2"><i class="bi bi-linkedin fs-5"></i></a>
+                    </div>
+                </div>
+            </div>
+            <hr class="bg-secondary my-2">
+            <div class="text-center small text-white-50">
+                &copy; 2026 NID Management System | All rights reserved.
+            </div>
         </div>
     </footer>
 

@@ -111,12 +111,15 @@ namespace NID_Project.Controllers
             return RedirectToAction("PendingUsers");
         }
 
-        public async Task<IActionResult> AllUsers()
+        public async Task<IActionResult> AllUsers(int? pageNumber)
         {
             if (await IsBlocked()) return RedirectToAction("Blocked");
+
+            int pageSize = 10;
             var users = await _userManager.GetUsersInRoleAsync("User");
-            var approvedUsers = users.Where(u => u.IsApproved).ToList();
-            return View(approvedUsers);
+            var approvedUsers = users.Where(u => u.IsApproved).OrderBy(u => u.FullName).ToList();
+
+            return View(PaginatedList<ApplicationUser>.Create(approvedUsers, pageNumber ?? 1, pageSize));
         }
 
         [HttpPost]

@@ -1,31 +1,102 @@
+/* ===== Original Styles (keep these) ===== */
 html {
-  font-size: 14px;
+    font-size: 14px;
 }
 
 @media (min-width: 768px) {
-  html {
-    font-size: 16px;
-  }
+    html {
+        font-size: 16px;
+    }
 }
 
 .btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
-  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
-}
-
-html {
-  position: relative;
-  min-height: 100%;
-}
-
-body {
-  margin-bottom: 60px;
+    box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
 }
 
 .form-floating > .form-control-plaintext::placeholder, .form-floating > .form-control::placeholder {
-  color: var(--bs-secondary-color);
-  text-align: end;
+    color: var(--bs-secondary-color);
+    text-align: end;
 }
 
 .form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
-  text-align: start;
+    text-align: start;
+}
+
+/* ===== New Layout & Navbar Styles ===== */
+/* Ensure body is a flex column and takes full viewport height */
+html, body {
+    height: 100%;
+}
+
+body {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    margin-bottom: 0; /* override previous margin-bottom */
+}
+
+/* Navbar custom styling */
+.custom-navbar {
+    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+    border-bottom: 2px solid #e9ecef;
+}
+
+.logo-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    background: linear-gradient(135deg, #0d6efd, #0dcaf0);
+    color: white;
+    border-radius: 8px;
+    font-size: 1.2rem;
+}
+
+.logo-img {
+    width: 40px;
+    height: 40px;
+    object-fit: contain;
+    border-radius: 8px; /* optional: rounded corners */
+}
+
+/* Nav link hover animation */
+.custom-nav-link {
+    position: relative;
+    padding: 0.5rem 0.75rem;
+    color: #333;
+    font-weight: 500;
+    transition: color 0.2s ease;
+}
+
+    .custom-nav-link::after {
+        content: '';
+        position: absolute;
+        left: 50%;
+        bottom: 0;
+        width: 0;
+        height: 2px;
+        background-color: #0d6efd;
+        transition: all 0.3s ease;
+        transform: translateX(-50%);
+    }
+
+    .custom-nav-link:hover::after,
+    .custom-nav-link.active::after {
+        width: 100%;
+    }
+
+    .custom-nav-link:hover {
+        color: #0d6efd;
+    }
+
+/* Active state for current page (optional) */
+.nav-item.active .custom-nav-link {
+    color: #0d6efd;
+}
+
+/* Footer link hover */
+.social-links a:hover {
+    color: #ffffff !important;
+    transition: color 0.2s ease;
 }
