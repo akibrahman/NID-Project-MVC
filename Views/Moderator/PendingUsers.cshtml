@@ -32,6 +32,7 @@
                         <td>@user.Email</td>
                         <td>@user.DateOfBirth?.ToString("dd MMM yyyy")</td>
                         <td>
+                            <a asp-action="UserDetails" asp-route-id="@user.Id" asp-route-returnTo="pendingusers" class="btn btn-info btn-sm">Details</a>
                             <form asp-action="ApproveUser" method="post" class="d-inline">
                                 <input type="hidden" name="id" value="@user.Id" />
                                 <button type="submit" class="btn btn-success btn-sm">Approve</button>

@@ -41,6 +41,7 @@
                             }
                         </td>
                         <td>
+                            <a asp-action="UserDetails" asp-route-id="@user.Id" asp-route-returnTo="allusers" class="btn btn-info btn-sm">Details</a>
                             @if (user.IsBlocked)
                             {
                                 <form asp-action="UnblockUser" method="post" class="d-inline">

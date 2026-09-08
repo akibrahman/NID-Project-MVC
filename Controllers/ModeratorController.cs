@@ -41,6 +41,24 @@ namespace NID_Project.Controllers
             return View(pendingUsers);
         }
 
+        public async Task<IActionResult> UserDetails(string id, string returnTo)
+        {
+            if (await IsBlocked()) return RedirectToAction("Blocked");
+
+            var user = await _userManager.FindByIdAsync(id);
+            if (user == null)
+            {
+                // If user not found, redirect to appropriate list
+                if (returnTo == "allusers")
+                    return RedirectToAction("AllUsers");
+                else
+                    return RedirectToAction("PendingUsers");
+            }
+
+            ViewBag.ReturnTo = returnTo;
+            return View(user);
+        }
+
         private async Task<string> GenerateUniqueNidNumber()
         {
             var random = new Random();
