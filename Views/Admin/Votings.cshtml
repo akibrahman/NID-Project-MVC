@@ -1,0 +1,70 @@
+﻿@model IEnumerable<Voting>
+@{
+    ViewData["Title"] = "Votings";
+}
+
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2>Votings</h2>
+        <a class="btn btn-success" asp-action="CreateVoting">Create Voting</a>
+    </div>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+    }
+
+    @if (!Model.Any())
+    {
+        <p>No votings created yet.</p>
+    }
+    else
+    {
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Area</th>
+                    <th>Position</th>
+                    <th>Nominees</th>
+                    <th>Votes</th>
+                    <th>Status</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var v in Model)
+                {
+                    <tr>
+                        <td>@v.Title</td>
+                        <td>@v.Area</td>
+                        <td>@v.Position</td>
+                        <td>@v.Nominees.Count</td>
+                        <td>@v.Ballots.Count</td>
+                        <td>
+                            @switch (v.Status)
+                            {
+                                case VotingStatus.Opening:
+                                    <span class="badge bg-warning text-dark">Opening</span>
+                                    break;
+                                case VotingStatus.Running:
+
+                                    <span class="badge bg-success">Running</span>
+                                    break;
+                                case VotingStatus.Closed:
+
+                                    <span class="badge bg-secondary">Closed</span>
+                                    break;
+                            }
+                        </td>
+                        <td><a asp-action="VotingDetails" asp-route-id="@v.Id" class="btn btn-info btn-sm">Details</a></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>

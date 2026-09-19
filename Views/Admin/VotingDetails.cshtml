@@ -1,0 +1,185 @@
+﻿@model Voting
+@{
+    ViewData["Title"] = "Voting Details";
+    int totalEligible = (int)(ViewBag.TotalEligible ?? 0);
+    int totalVoted = (int)(ViewBag.TotalVoted ?? 0);
+    int remaining = (int)(ViewBag.Remaining ?? 0);
+
+    // Winner / tie computation
+    int maxVotes = Model.Nominees.Any() ? Model.Nominees.Max(n => n.Ballots?.Count ?? 0) : 0;
+    var winners = maxVotes > 0
+        ? Model.Nominees.Where(n => (n.Ballots?.Count ?? 0) == maxVotes).ToList()
+        : new List<Nominee>();
+    bool isTie = winners.Count > 1;
+}
+
+<div class="container">
+    <a asp-action="Votings" class="btn btn-secondary mb-3">&larr; Back</a>
+    <h2>@Model.Title</h2>
+    <p class="text-muted">@Model.Area &middot; @Model.Position</p>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+    }
+
+    <!-- ===== RESULT SECTION (only when Closed) ===== -->
+    @if (Model.Status == VotingStatus.Closed)
+    {
+        <div class="card mb-3 border-success">
+            <div class="card-header bg-success text-white">
+                <h4 class="mb-0">Final Result</h4>
+            </div>
+            <div class="card-body">
+                @if (maxVotes == 0)
+                {
+                    <p class="mb-0">No votes were cast in this voting.</p>
+                }
+                else if (!isTie)
+                {
+                    var w = winners.First();
+                    <p class="mb-1">
+                        <strong>Winner:</strong> @w.Name
+                        @if (!string.IsNullOrEmpty(w.TeamName))
+                        {
+                            <text> (@w.TeamName)</text>
+                        }
+                        — Sign: <strong>@w.Sign</strong>
+                    </p>
+                    <p class="mb-0">Total votes: <strong>@maxVotes</strong> out of @totalVoted cast.</p>
+                }
+                else
+                {
+                    <p class="mb-2"><strong>Tie!</strong> The following nominees received the same highest number of votes (@maxVotes):</p>
+                    <ul class="mb-0">
+                        @foreach (var w in winners)
+                        {
+                            <li>
+                                @w.Name
+                                @if (!string.IsNullOrEmpty(w.TeamName))
+                                {
+                                    <text> (@w.TeamName)</text>
+                                }
+                                — Sign: <strong>@w.Sign</strong>
+                            </li>
+                        }
+                    </ul>
+                }
+            </div>
+        </div>
+    }
+
+    <div class="card mb-3">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+            <span>Status: <strong>@Model.Status</strong></span>
+            <div>
+                @if (Model.Status == VotingStatus.Opening)
+                {
+                    @if (Model.Nominees.Count < 10)
+                    {
+                        <a asp-action="AddNominee" asp-route-id="@Model.Id" class="btn btn-light btn-sm">Add Nominee</a>
+                    }
+                    @if (Model.Nominees.Count >= 3)
+                    {
+                        <form asp-action="StartVoting" method="post" class="d-inline">
+                            <input type="hidden" name="id" value="@Model.Id" />
+                            <button type="submit" class="btn btn-success btn-sm" onclick="return confirm('Start the voting? Nominees can no longer be changed.');">Start Voting</button>
+                        </form>
+                    }
+                }
+                else if (Model.Status == VotingStatus.Running)
+                {
+                    <form asp-action="CloseVoting" method="post" class="d-inline">
+                        <input type="hidden" name="id" value="@Model.Id" />
+                        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Close the voting? This cannot be undone.');">Close Voting</button>
+                    </form>
+                }
+            </div>
+        </div>
+        <div class="card-body">
+            <p>@Model.Description</p>
+        </div>
+    </div>
+
+    @if (Model.Status == VotingStatus.Opening)
+    {
+        <div class="alert alert-info">Add at least 3 nominees (max 10), then start the voting.</div>
+    }
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card mb-3">
+                <div class="card-header">Nominees (@Model.Nominees.Count)</div>
+                <div class="card-body">
+                    @if (!Model.Nominees.Any())
+                    {
+                        <p>No nominees yet.</p>
+                    }
+                    else
+                    {
+                        <table class="table table-sm align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Photo</th>
+                                    <th>Name</th>
+                                    <th>Team</th>
+                                    <th>Sign</th>
+                                    <th>Votes</th>
+                                    <th>%</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var n in Model.Nominees)
+                                {
+                                    int votes = n.Ballots?.Count ?? 0;
+                                    double votePercent = totalVoted > 0 ? (votes * 100.0 / totalVoted) : 0;
+                                    bool isWinner = Model.Status == VotingStatus.Closed && maxVotes > 0 && votes == maxVotes;
+                                    <tr class="@(isWinner ? "table-success" : "")">
+                                        <td>
+                                            @if (!string.IsNullOrEmpty(n.PhotoPath))
+                                            {
+                                                <img src="@n.PhotoPath" style="width:50px;height:50px;object-fit:cover;border-radius:6px;" />
+                                            }
+                                        </td>
+                                        <td>
+                                            @n.Name
+                                            @if (isWinner)
+                                            {
+                                                <span class="badge bg-success ms-1">@(isTie ? "Tied" : "Winner")</span>
+                                            }
+                                        </td>
+                                        <td>@n.TeamName</td>
+                                        <td><strong>@n.Sign</strong></td>
+                                        <td>@votes</td>
+                                        <td>@votePercent.ToString("F1")%</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card mb-3">
+                <div class="card-header">Progress</div>
+                <div class="card-body">
+                    <p><strong>Eligible users:</strong> @totalEligible</p>
+                    <p><strong>Votes cast:</strong> @totalVoted</p>
+                    <p><strong>Remaining:</strong> @remaining</p>
+                    <div class="progress">
+                        @{
+                            double pct = totalEligible > 0 ? (totalVoted * 100.0 / totalEligible) : 0;
+                        }
+                        <div class="progress-bar bg-success" role="progressbar" style="width:@pct.ToString("F1")%">@pct.ToString("F1")%</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

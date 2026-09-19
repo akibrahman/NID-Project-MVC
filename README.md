@@ -1,6 +1,6 @@
 # National ID Card Management System
 
-An ASP.NET Core MVC web application for managing National ID (NID) applications. The system supports three roles: **Admin**, **Moderator**, and **User**. Users can register with their personal details and upload a photo. Moderators review and approve pending registrations, block/unblock users, and handle user data edit applications. Admins manage moderators and monitor system-wide activity through analytics. The design is clean, light-themed, and built with Bootstrap.
+An ASP.NET Core MVC web application for managing National ID (NID) applications. The system supports three roles: **Admin**, **Moderator**, and **User**. Users can register with their personal details and upload a photo. Moderators review and approve pending registrations, block/unblock users, and handle user data edit applications. Admins manage moderators, monitor system-wide activity through analytics, and run area/position-based votings. The design is clean, light-themed, and built with Bootstrap.
 
 ## Features
 
@@ -11,9 +11,9 @@ An ASP.NET Core MVC web application for managing National ID (NID) applications.
   - New registrations are marked as **Pending Approval**.
 
 - **Role-Based Dashboards**  
-  - **Admin Dashboard**: Analytics overview with four stat cards (Total Moderators, Total Users, Pending Users, Total Applications), a **pie chart** of applications grouped by status, and a **bar chart** of moderator activity (reviews handled). Separate **Moderators** page for listing, creating, blocking, and unblocking moderators.
+  - **Admin Dashboard**: Analytics overview with four stat cards (Total Moderators, Total Users, Pending Users, Total Applications), a **pie chart** of applications grouped by status, and a **bar chart** of moderator activity (reviews handled). Separate **Moderators** page for listing, creating, blocking, and unblocking moderators. Also manages **Votings** (create, add nominees, start, close, view results).
   - **Moderator Dashboard**: View own profile, list of pending users, approve users, view all approved users (paginated, 10 per page), block/unblock users, view user details, and manage **Edit Applications**.
-  - **User Dashboard**: Display personal information, NID status, approval status, blocked status, and profile photo.
+  - **User Dashboard**: Display personal information, NID status, approval status, blocked status, and profile photo. Participate in running votings.
 
 - **Approval Workflow**  
   - Users must be approved by a moderator before they are considered "Active".
@@ -24,7 +24,7 @@ An ASP.NET Core MVC web application for managing National ID (NID) applications.
   - Moderators can block/unblock users.
   - Admins can block/unblock moderators.
   - Blocked moderators cannot access any moderator functionality (redirected to a "Blocked" page).
-  - Blocked users cannot apply for edits or submit edits; their dashboard reflects the blocked status.
+  - Blocked users cannot apply for edits, submit edits, or vote; their dashboard reflects the blocked status.
 
 - **PDF NID Download**  
   - Approved and non-blocked users can download a **PDF version of their NID card** from their dashboard.
@@ -50,6 +50,39 @@ An ASP.NET Core MVC web application for managing National ID (NID) applications.
     - Blocked users cannot create or edit applications.
     - Blocked moderators cannot review applications.
 
+- **Voting System** *(admin-managed, user-participated)*  
+  - **Admin-side lifecycle**:
+    1. **Create a voting** by specifying Title, Area, Position, and optional Description. Newly created voting starts in `Opening` status.
+    2. **Add nominees** while the voting is `Opening`. Each nominee requires Name, Sign (a text symbol — the "marka", e.g. *boat*, *ladder*), and optional Team Name and Photo (JPG/PNG only). **Minimum 3, maximum 10** nominees per voting.
+    3. **Start the voting** → status becomes `Running`. Nominees are frozen; no additions or edits allowed.
+    4. **Close the voting** → status becomes `Closed`. This is a one-way action; a closed voting cannot be reopened or modified.
+  - **Voting status states**:
+    - `Opening` – admin is adding nominees; users see the voting but cannot vote.
+    - `Running` – users can vote; live statistics are visible only to the admin.
+    - `Closed` – results are revealed to everyone, including nominees, vote counts, and percentages.
+  - **User-side behavior**:
+    - Users visit the **Votings** page from the navbar to see all votings.
+    - For a `Running` voting they can open the details page and vote for exactly **one nominee**.
+    - Their vote is final — no edit, no retraction, no second vote.
+    - While the voting is `Running`, users **cannot see** vote counts, percentages, or progress; they only see that they have voted (or can vote).
+    - After the admin closes the voting, users see the **final result**: winner(s), each nominee's vote count, and vote percentage.
+    - Only **approved and non-blocked** users can vote. Blocked or pending users see a clear message instead of the voting UI.
+  - **Admin-side live statistics** (only visible to admin while voting is Running or Closed):
+    - Total eligible users (approved + non-blocked).
+    - Total votes cast.
+    - Remaining users who haven't voted.
+    - A progress bar showing turnout percentage.
+    - Each nominee's vote count and percentage.
+  - **Winner determination**:
+    - The nominee with the highest number of votes is the winner.
+    - If **multiple nominees tie** with the same highest count, the result is declared a **tie** and all tied nominees are listed. No arbitrary rule (like lowest ID) is used to break ties — the admin decides how to proceed (e.g. re-run, negotiate, accept co-winners).
+    - If no votes were cast, no winner is declared.
+  - **Access control**:
+    - Blocked users cannot vote.
+    - Pending (not yet approved) users cannot vote.
+    - Only admins can create, modify (while Opening), start, and close votings.
+    - Users can only submit a vote when the voting is Running and they haven't voted yet.
+
 - **Admin Analytics Dashboard**  
   - **Stat cards**:
     - Total Moderators (clickable → opens Moderators page)
@@ -69,7 +102,7 @@ An ASP.NET Core MVC web application for managing National ID (NID) applications.
   - Light theme, responsive Bootstrap 5 layout.
   - Modern navbar with logo, animated hover underline, and red logout button.
   - Full-height layout with an enhanced multi-column footer.
-  - Status badges for approval, blocking, and application states.
+  - Status badges for approval, blocking, application states, and voting states.
   - Dashboard charts for admin-side analytics.
 
 ## Tech Stack
@@ -80,10 +113,10 @@ An ASP.NET Core MVC web application for managing National ID (NID) applications.
 - **ORM**: Entity Framework Core (Code First)
 - **UI**: Bootstrap 5, Razor Views, Bootstrap Icons
 - **Charts**: Chart.js (loaded via CDN)
-- **File Storage**: Local `wwwroot/uploads` for profile photos
+- **File Storage**: Local `wwwroot/uploads` for profile photos and nominee photos
 - **PDF Generation**: QuestPDF
 - **Image Processing**: SkiaSharp (for re-encoding photos to PNG before PDF embedding)
-- **JSON Serialization**: `System.Text.Json` for storing proposed field changes
+- **JSON Serialization**: `System.Text.Json` for storing proposed field changes in edit applications
 
 ## Prerequisites
 
@@ -137,7 +170,7 @@ Add-Migration InitialCreate
 Update-Database
 ```
 
-The database will be created with all Identity tables, custom user fields, and the `EditApplications` table.
+The database will be created with all Identity tables, custom user fields, the `EditApplications` table, and the voting tables (`Votings`, `Nominees`, `UserBallots`).
 
 ### 5. Run the Application
 
@@ -156,12 +189,12 @@ Log in as admin to create moderator accounts.
 
 | Role      | Permissions                                                                 |
 |-----------|-----------------------------------------------------------------------------|
-| **Admin** | View analytics dashboard (stat cards, pie chart, moderator activity bar chart), create moderators, view moderator list, block/unblock moderators |
+| **Admin** | View analytics dashboard (stat cards, pie chart, moderator activity bar chart), create moderators, view moderator list, block/unblock moderators, create and manage votings (add nominees, start, close, view live statistics and results) |
 | **Moderator** | View pending users, approve users (generates NID number), view all approved users (paginated), block/unblock users, view user details, review edit applications (both stages) |
-| **User**   | Register, view dashboard/profile, see approval & blocked status, download NID PDF (if approved and not blocked), apply for data edits once per month, delete pending/approved applications, edit approved fields, track full application history |
+| **User**   | Register, view dashboard/profile, see approval & blocked status, download NID PDF (if approved and not blocked), apply for data edits once per month, delete pending/approved applications, edit approved fields, track full application history, participate in running votings and view results after close |
 
 > Blocked moderators cannot access any moderator functions (redirected to Blocked page).
-> Blocked users cannot download PDF, create applications, or edit fields.
+> Blocked users cannot download PDF, create applications, edit fields, or vote.
 
 ## Project Structure
 
@@ -169,9 +202,10 @@ Log in as admin to create moderator accounts.
 NID_Project/
 ├── Controllers/
 │   ├── AccountController.cs
-│   ├── AdminController.cs            (analytics dashboard + moderator management)
+│   ├── AdminController.cs            (analytics dashboard + moderator management + voting management)
 │   ├── ModeratorController.cs
-│   └── UserController.cs
+│   ├── UserController.cs
+│   └── VotingController.cs           (user-facing voting participation)
 ├── Data/
 │   └── ApplicationDbContext.cs
 ├── Models/
@@ -184,7 +218,12 @@ NID_Project/
 │   ├── EditApplication.cs
 │   ├── CreateApplicationViewModel.cs
 │   ├── UserEditFieldsViewModel.cs
-│   └── FieldChange.cs
+│   ├── FieldChange.cs
+│   ├── Voting.cs                     (voting entity + VotingStatus enum)
+│   ├── Nominee.cs                    (nominee entity)
+│   ├── UserBallot.cs                 (single vote per user per voting)
+│   ├── CreateVotingViewModel.cs
+│   └── AddNomineeViewModel.cs
 ├── Views/
 │   ├── Account/
 │   │   ├── Login.cshtml
@@ -193,7 +232,11 @@ NID_Project/
 │   ├── Admin/
 │   │   ├── Dashboard.cshtml          (stat cards + charts)
 │   │   ├── Moderators.cshtml         (moderator list with block/unblock)
-│   │   └── CreateModerator.cshtml
+│   │   ├── CreateModerator.cshtml
+│   │   ├── Votings.cshtml            (list of votings)
+│   │   ├── CreateVoting.cshtml
+│   │   ├── VotingDetails.cshtml      (admin view with live stats + result)
+│   │   └── AddNominee.cshtml
 │   ├── Moderator/
 │   │   ├── Dashboard.cshtml
 │   │   ├── PendingUsers.cshtml
@@ -207,12 +250,15 @@ NID_Project/
 │   │   ├── MyApplication.cshtml
 │   │   ├── CreateApplication.cshtml
 │   │   └── EditFields.cshtml
+│   ├── Voting/
+│   │   ├── Index.cshtml              (all votings for users)
+│   │   └── Details.cshtml            (vote + results after close)
 │   └── Shared/
 │       └── _Layout.cshtml
 ├── wwwroot/
 │   ├── css/site.css
 │   ├── images/                       (logo)
-│   └── uploads/                      (uploaded profile photos)
+│   └── uploads/                      (uploaded profile photos and nominee photos)
 ├── Program.cs
 ├── appsettings.json
 └── README.md
@@ -250,11 +296,24 @@ NID_Project/
    - If approved, the changes are applied to the user record; if rejected, a rejection message is stored.
    - The full history (who reviewed, when, and any messages) remains visible on the application details page.
 
+5. **Voting**  
+   - **Admin**:  
+     1. Open **Admin → Votings → Create Voting**. Fill Title, Area, Position, and optional Description.  
+     2. Open the new voting's details page and click **Add Nominee** for each nominee (Name, Team, Sign/marka text, optional photo). At least 3 and at most 10 nominees.  
+     3. When ready, click **Start Voting** → status becomes `Running`.  
+     4. Watch live progress on the voting details page (turnout, per-nominee vote counts, percentages).  
+     5. When finished, click **Close Voting** → status becomes `Closed`. Results are frozen and revealed to everyone.  
+   - **User**:  
+     1. Open **Votings** from the navbar.  
+     2. Open a voting with status `Running`.  
+     3. Choose exactly one nominee and click **Vote**. A confirmation dialog appears; the vote is final.  
+     4. Once the admin closes the voting, the results page shows the winner (or a tie) along with each nominee's vote count and percentage.
+
 ## Additional Notes
 
 - The admin account is seeded automatically on startup; no manual database insertion is required.
 - `UserName` is set to the user's email for uniqueness; full name is stored as a claim for navbar display.
-- Photo uploads are restricted to `.jpg`, `.jpeg`, `.png` on both frontend (JS) and backend (controller).
+- Photo uploads are restricted to `.jpg`, `.jpeg`, `.png` on both frontend (JS) and backend (controller). This applies to user registration photos, edit-application photos, and nominee photos.
 - Uploaded photos are stored in `wwwroot/uploads` with a GUID prefix.
 - PDF generation uses QuestPDF and SkiaSharp; photos are re-encoded to PNG for reliable embedding.
 - The NID card PDF is credit-card sized with a dark-blue header and white body.
@@ -274,6 +333,20 @@ NID_Project/
 - **Bar chart** (`Moderator Activity`) is populated from `AdminDashboardViewModel.ModeratorActivity`, a dictionary mapping moderator full name → count of reviews handled. The count includes **both** Stage 1 (`ReviewedByModerator`) and Stage 2 (`ChangeReviewedByModerator`) reviews, so a moderator who reviewed an application twice (once per stage) contributes 2 to their total. Moderators with zero reviews appear in the chart with a value of 0.
 - Charts are drawn with **Chart.js 4.x** loaded from jsDelivr CDN, and only initialize when their data is non-empty.
 
+### Voting System Details
+
+- **Entities**:
+  - `Voting` — Title, Area, Position, Description, Status, CreatedAt, StartedAt, ClosedAt. Has collections `Nominees` and `Ballots`.
+  - `Nominee` — Name, TeamName, Sign (text), PhotoPath, FK to `Voting`. Has a `Ballots` collection.
+  - `UserBallot` — VotingId, NomineeId, UserId, VotedAt. A **unique index** on `(VotingId, UserId)` guarantees one vote per user per voting.
+- **Status enum** `VotingStatus`: `Opening`, `Running`, `Closed`.
+- **Transitions**: `Opening → Running → Closed`. No backward transitions. Closing is final.
+- **Nominee limits**: enforced in `AdminController.AddNominee` and `StartVoting` — at least 3 and at most 10 nominees are required.
+- **Vote submission**: performed by `VotingController.SubmitVote`, which checks the user is approved, not blocked, the voting is `Running`, and the user has not already voted. Attempting any of these invalid conditions returns a friendly error.
+- **Live admin stats**: `AdminController.VotingDetails` computes `TotalEligible`, `TotalVoted`, and `Remaining`, and per-nominee vote counts / percentages using the nominee's `Ballots` collection.
+- **Result reveal**: user-facing results are only rendered when `Status == Closed`. While `Running`, users see only their own choice (if any) and the nominee cards, without any vote counts or percentages.
+- **Tie handling**: the winner is the highest-vote-count nominee. If more than one nominee shares the highest count, the result is displayed as a tie with all top-scoring nominees listed.
+
 ## Troubleshooting
 
 - **"Element with same key..." error in Visual Studio**: Delete the hidden `.vs` folder and rebuild. Also try running `dotnet run` from command line.
@@ -285,6 +358,10 @@ NID_Project/
 - **Old edit applications show blank previous value**: Applications created before the `FieldChange` model was introduced have no `OldValue`; the UI shows "-" for them.
 - **Charts not showing on Admin Dashboard**: Verify you have internet access so the Chart.js CDN can load. Open the browser console (F12) to check for CDN load errors. The rest of the dashboard (stat cards) still works without Chart.js.
 - **Moderator activity bar chart is empty**: This occurs when no moderator has performed any reviews yet. The chart auto-hides in that case and a "No moderator activity recorded yet." message is displayed.
+- **"A local or parameter named 'pct' cannot be declared in this scope"**: In Razor views, do not reuse the same variable name at overlapping scopes. Rename one of them (e.g., `votePercent`).
+- **Admin Voting Details doesn't show result after closing**: The result card is only rendered when `Model.Status == VotingStatus.Closed`. Verify the voting was actually closed (Status is `Closed`, not `Running`).
+- **Voting start fails**: Ensure at least 3 nominees exist. The "Start Voting" button only appears when the requirement is met, but the backend also enforces it.
+- **User cannot vote**: Confirm the user is `IsApproved = true` and `IsBlocked = false`, that the voting is `Running`, and that they haven't already voted. Each of these is checked server-side and produces a specific error.
 
 ## License
 

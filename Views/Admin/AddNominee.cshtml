@@ -1,0 +1,42 @@
+﻿@model AddNomineeViewModel
+@{
+    ViewData["Title"] = "Add Nominee";
+}
+
+<div class="container">
+    <h2>Add Nominee</h2>
+    <form asp-action="AddNominee" method="post" enctype="multipart/form-data">
+        <input type="hidden" asp-for="VotingId" />
+        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+        <div class="mb-3">
+            <label asp-for="Name" class="form-label"></label>
+            <input asp-for="Name" class="form-control" />
+            <span asp-validation-for="Name" class="text-danger"></span>
+        </div>
+        <div class="mb-3">
+            <label asp-for="TeamName" class="form-label"></label>
+            <input asp-for="TeamName" class="form-control" />
+        </div>
+        <div class="mb-3">
+            <label asp-for="Sign" class="form-label"></label>
+            <input asp-for="Sign" class="form-control" placeholder="e.g. boat, rice-sheaf, ladder" />
+            <span asp-validation-for="Sign" class="text-danger"></span>
+        </div>
+        <div class="mb-3">
+            <label asp-for="Photo" class="form-label"></label>
+            <input asp-for="Photo" type="file" accept=".jpg,.jpeg,.png" class="form-control" />
+            <span asp-validation-for="Photo" class="text-danger"></span>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Add</button>
+        <a asp-action="VotingDetails" asp-route-id="@Model.VotingId" class="btn btn-secondary">Cancel</a>
+    </form>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+
+}

@@ -1,0 +1,147 @@
+﻿@model Voting
+@{
+    ViewData["Title"] = Model.Title;
+    var myBallot = ViewBag.MyBallot as UserBallot;
+    bool isBlocked = (bool)(ViewBag.IsBlocked ?? false);
+    bool isApproved = (bool)(ViewBag.IsApproved ?? false);
+    int totalVotes = Model.Ballots?.Count ?? 0;
+}
+
+<div class="container">
+    <a asp-action="Index" class="btn btn-secondary mb-3">&larr; Back</a>
+    <h2>@Model.Title</h2>
+    <p class="text-muted">@Model.Area &middot; @Model.Position</p>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+    }
+
+    @if (Model.Status == VotingStatus.Opening)
+    {
+        <div class="alert alert-info">This voting has not started yet. Please check back later.</div>
+    }
+    else if (Model.Status == VotingStatus.Running)
+    {
+        if (isBlocked)
+        {
+            <div class="alert alert-danger">Your account is blocked. You cannot vote.</div>
+        }
+        else if (!isApproved)
+        {
+            <div class="alert alert-warning">Your account is not approved yet. You cannot vote.</div>
+        }
+        else if (myBallot != null)
+        {
+            var chosen = Model.Nominees.FirstOrDefault(n => n.Id == myBallot.NomineeId);
+            <div class="alert alert-success">
+                You voted for <strong>@chosen?.Name</strong> (@chosen?.Sign) — @myBallot.VotedAt.ToString("dd MMM yyyy HH:mm").
+            </div>
+        }
+
+        <h4>Nominees</h4>
+        <div class="row">
+            @foreach (var n in Model.Nominees)
+            {
+                <div class="col-md-4 mb-3">
+                    <div class="card h-100">
+                        <div class="card-body text-center">
+                            @if (!string.IsNullOrEmpty(n.PhotoPath))
+                            {
+                                <img src="@n.PhotoPath" style="width:100px;height:100px;object-fit:cover;border-radius:50%;" class="mb-2" />
+                            }
+                            <h5 class="mb-0">@n.Name</h5>
+                            <p class="text-muted">@n.TeamName</p>
+                            <p>Sign: <strong>@n.Sign</strong></p>
+
+                            @if (myBallot == null && isApproved && !isBlocked)
+                            {
+                                <form asp-action="SubmitVote" method="post">
+                                    <input type="hidden" name="votingId" value="@Model.Id" />
+                                    <input type="hidden" name="nomineeId" value="@n.Id" />
+                                    <button type="submit" class="btn btn-primary btn-sm" onclick="return confirm('Confirm your vote for @n.Name? You cannot change it later.');">Vote</button>
+                                </form>
+                            }
+                            else if (myBallot != null && myBallot.NomineeId == n.Id)
+                            {
+                                <span class="badge bg-success">Your Choice</span>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+    else if (Model.Status == VotingStatus.Closed)
+    {
+        var ordered = Model.Nominees
+            .OrderByDescending(n => n.Ballots?.Count ?? 0)
+            .ToList();
+        int maxVotes = ordered.Any() ? (ordered.First().Ballots?.Count ?? 0) : 0;
+        var winners = maxVotes > 0
+            ? ordered.Where(n => (n.Ballots?.Count ?? 0) == maxVotes).ToList()
+            : new List<Nominee>();
+        bool isTie = winners.Count > 1;
+
+        <div class="alert alert-success">
+            <h4>Result</h4>
+            @if (maxVotes == 0)
+            {
+                <p>No votes were cast.</p>
+            }
+            else if (!isTie)
+            {
+                var w = winners.First();
+                <p><strong>Winner:</strong> @w.Name (@w.Sign) with @maxVotes vote(s)</p>
+            }
+            else
+            {
+                <p><strong>Tie!</strong> The following nominees received the same highest number of votes (@maxVotes):</p>
+                <ul>
+                    @foreach (var w in winners)
+                    {
+                        <li>@w.Name (@w.Sign)</li>
+                    }
+                </ul>
+            }
+
+            @if (myBallot != null)
+            {
+                var chosen = Model.Nominees.FirstOrDefault(n => n.Id == myBallot.NomineeId);
+                <p>Your vote: <strong>@chosen?.Name</strong></p>
+            }
+        </div>
+
+        <h4>Detailed Results</h4>
+        <table class="table table-striped">
+            <thead>
+                <tr><th>Nominee</th><th>Team</th><th>Sign</th><th>Votes</th><th>%</th></tr>
+            </thead>
+            <tbody>
+                @foreach (var n in ordered)
+                {
+                    int votes = n.Ballots?.Count ?? 0;
+                    double votePercent = totalVotes > 0 ? (votes * 100.0 / totalVotes) : 0;
+                    bool isWinner = maxVotes > 0 && votes == maxVotes;
+                    <tr class="@(isWinner ? "table-success" : "")">
+                        <td>
+                            @n.Name
+                            @if (isWinner)
+                            {
+                                <span class="badge bg-success ms-1">@(isTie ? "Tied" : "Winner")</span>
+                            }
+                        </td>
+                        <td>@n.TeamName</td>
+                        <td>@n.Sign</td>
+                        <td>@votes</td>
+                        <td>@votePercent.ToString("F1")%</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>

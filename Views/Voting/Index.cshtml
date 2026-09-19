@@ -1,0 +1,54 @@
+﻿@model IEnumerable<Voting>
+@{
+    ViewData["Title"] = "Votings";
+}
+
+<div class="container">
+    <h2>Votings</h2>
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+    }
+
+    @if (!Model.Any())
+    {
+        <p>No votings available.</p>
+    }
+    else
+    {
+        <div class="row">
+            @foreach (var v in Model)
+            {
+                <div class="col-md-4 mb-3">
+                    <div class="card shadow-sm h-100">
+                        <div class="card-body">
+                            <h5>@v.Title</h5>
+                            <p class="text-muted mb-1">@v.Area &middot; @v.Position</p>
+                            <p>
+                                @switch (v.Status)
+                                {
+                                    case VotingStatus.Opening:
+                                        <span class="badge bg-warning text-dark">Opening</span>
+                                        break;
+                                    case VotingStatus.Running:
+
+                                        <span class="badge bg-success">Running</span>
+                                        break;
+                                    case VotingStatus.Closed:
+
+                                        <span class="badge bg-secondary">Closed</span>
+                                        break;
+                                }
+                            </p>
+                            <a asp-action="Details" asp-route-id="@v.Id" class="btn btn-primary btn-sm">Open</a>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>

@@ -1,0 +1,40 @@
+﻿@model CreateVotingViewModel
+@{
+    ViewData["Title"] = "Create Voting";
+}
+
+<div class="container">
+    <h2>Create Voting</h2>
+
+    <form asp-action="CreateVoting" method="post">
+        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+        <div class="mb-3">
+            <label asp-for="Title" class="form-label"></label>
+            <input asp-for="Title" class="form-control" />
+            <span asp-validation-for="Title" class="text-danger"></span>
+        </div>
+        <div class="mb-3">
+            <label asp-for="Area" class="form-label"></label>
+            <input asp-for="Area" class="form-control" />
+            <span asp-validation-for="Area" class="text-danger"></span>
+        </div>
+        <div class="mb-3">
+            <label asp-for="Position" class="form-label"></label>
+            <input asp-for="Position" class="form-control" />
+            <span asp-validation-for="Position" class="text-danger"></span>
+        </div>
+        <div class="mb-3">
+            <label asp-for="Description" class="form-label"></label>
+            <textarea asp-for="Description" class="form-control" rows="3"></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary">Create</button>
+        <a asp-action="Votings" class="btn btn-secondary">Cancel</a>
+    </form>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+
+}
