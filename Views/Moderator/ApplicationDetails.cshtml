@@ -1,0 +1,121 @@
+﻿@model EditApplication
+@{
+    ViewData["Title"] = "Application Details";
+    Dictionary<string, FieldChange> changes = new();
+    if (!string.IsNullOrEmpty(Model.EditedDataJson))
+    {
+        try
+        {
+            changes = System.Text.Json.JsonSerializer
+                .Deserialize<Dictionary<string, FieldChange>>(Model.EditedDataJson)
+                ?? new Dictionary<string, FieldChange>();
+        }
+        catch
+        {
+            // Fallback for older applications
+            try
+            {
+                var oldStyle = System.Text.Json.JsonSerializer
+                    .Deserialize<Dictionary<string, string?>>(Model.EditedDataJson)
+                    ?? new Dictionary<string, string?>();
+                changes = oldStyle.ToDictionary(kv => kv.Key, kv => new FieldChange { OldValue = null, NewValue = kv.Value });
+            }
+            catch { }
+        }
+    }
+}
+
+<div class="container">
+    <a asp-action="Applications" class="btn btn-secondary mb-3">&larr; Back</a>
+    <h2>Application #@Model.Id</h2>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+    }
+
+    <div class="card mb-3">
+        <div class="card-header bg-primary text-white">Applicant</div>
+        <div class="card-body">
+            <p><strong>Name:</strong> @Model.User?.FullName</p>
+            <p><strong>Email:</strong> @Model.User?.Email</p>
+            <p><strong>Requested Fields:</strong> @Model.RequestedFields.Replace(",", ", ")</p>
+            <p><strong>Created At:</strong> @Model.CreatedAt.ToString("dd MMM yyyy HH:mm")</p>
+        </div>
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-header">Stage 1 – Request Review</div>
+        <div class="card-body">
+            <p><strong>Status:</strong> @Model.Status</p>
+            @if (Model.ReviewedByModerator != null)
+            {
+                <p><strong>Reviewed By:</strong> @Model.ReviewedByModerator.FullName at @Model.ReviewedAt?.ToString("dd MMM yyyy HH:mm")</p>
+                <p><strong>Message:</strong> @(Model.ReviewMessage ?? "-")</p>
+            }
+
+            @if (Model.Status == ApplicationStatus.Pending)
+            {
+                <form asp-action="ReviewApplication" method="post" class="mt-2">
+                    <input type="hidden" name="id" value="@Model.Id" />
+                    <div class="mb-2">
+                        <textarea name="message" class="form-control" rows="2" placeholder="Message (required for rejection)"></textarea>
+                    </div>
+                    <button type="submit" name="action" value="approve" class="btn btn-success btn-sm">Approve Request</button>
+                    <button type="submit" name="action" value="reject" class="btn btn-danger btn-sm">Reject Request</button>
+                </form>
+            }
+        </div>
+    </div>
+
+    @if (Model.Status == ApplicationStatus.Edited || Model.Status == ApplicationStatus.Completed || Model.Status == ApplicationStatus.ChangeRejected)
+    {
+        <div class="card mb-3">
+            <div class="card-header">Stage 2 – Proposed Changes</div>
+            <div class="card-body">
+                <p><strong>Edited At:</strong> @Model.EditedAt?.ToString("dd MMM yyyy HH:mm")</p>
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Field</th>
+                            <th>Previous Value</th>
+                            <th>New Value</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var kv in changes)
+                        {
+                            <tr>
+                                <td>@kv.Key</td>
+                                <td>@(string.IsNullOrEmpty(kv.Value.OldValue) ? "-" : kv.Value.OldValue)</td>
+                                <td>@(string.IsNullOrEmpty(kv.Value.NewValue) ? "-" : kv.Value.NewValue)</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+
+                @if (Model.ChangeReviewedByModerator != null)
+                {
+                    <p><strong>Reviewed By:</strong> @Model.ChangeReviewedByModerator.FullName at @Model.ChangeReviewedAt?.ToString("dd MMM yyyy HH:mm")</p>
+                    <p><strong>Message:</strong> @(Model.ChangeReviewMessage ?? "-")</p>
+                }
+
+                @if (Model.Status == ApplicationStatus.Edited)
+                {
+                    <form asp-action="ReviewChanges" method="post">
+                        <input type="hidden" name="id" value="@Model.Id" />
+                        <div class="mb-2">
+                            <textarea name="message" class="form-control" rows="2" placeholder="Message (required for rejection)"></textarea>
+                        </div>
+                        <button type="submit" name="action" value="approve" class="btn btn-success btn-sm">Approve Changes</button>
+                        <button type="submit" name="action" value="reject" class="btn btn-danger btn-sm">Reject Changes</button>
+                    </form>
+                }
+            </div>
+        </div>
+    }
+</div>

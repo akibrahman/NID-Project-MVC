@@ -1,0 +1,110 @@
+﻿@model IEnumerable<EditApplication>
+@{
+    ViewData["Title"] = "My Applications";
+    var activeApp = ViewBag.ActiveApp as EditApplication;
+    var isBlocked = (bool)(ViewBag.IsBlocked ?? false);
+    var canCreate = (bool)(ViewBag.CanCreate ?? false);
+    int? daysUntilNext = ViewBag.DaysUntilNext as int?;
+}
+
+<div class="container">
+    <h2 class="mb-3">My Applications</h2>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+    }
+
+    @if (isBlocked)
+    {
+        <div class="alert alert-danger">Your account is blocked. You cannot create or edit applications.</div>
+    }
+    else if (activeApp != null)
+    {
+        <div class="alert alert-info">
+            You have an active application (Status: <strong>@activeApp.Status</strong>).
+        </div>
+    }
+    else if (!canCreate && daysUntilNext.HasValue)
+    {
+        <div class="alert alert-warning">
+            You can make another application in <strong>@daysUntilNext</strong> day(s).
+        </div>
+    }
+    else if (canCreate)
+    {
+        <a class="btn btn-primary mb-3" asp-action="CreateApplication">Apply for Edit</a>
+    }
+
+    @if (!Model.Any())
+    {
+        <p>You have not submitted any applications yet.</p>
+    }
+    else
+    {
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>Created</th>
+                    <th>Requested Fields</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var app in Model)
+                {
+                    <tr>
+                        <td>@app.CreatedAt.ToString("dd MMM yyyy HH:mm")</td>
+                        <td>@app.RequestedFields.Replace(",", ", ")</td>
+                        <td>
+                            @switch (app.Status)
+                            {
+                                case ApplicationStatus.Pending:
+                                    <span class="badge bg-warning text-dark">Pending</span>
+                                    break;
+                                case ApplicationStatus.Approved:
+
+                                    <span class="badge bg-info text-dark">Approved - Awaiting your edits</span>
+                                    break;
+                                case ApplicationStatus.Rejected:
+
+                                    <span class="badge bg-danger">Rejected</span>
+                                    break;
+                                case ApplicationStatus.Edited:
+
+                                    <span class="badge bg-primary">Edited - Awaiting review</span>
+                                    break;
+                                case ApplicationStatus.Completed:
+
+                                    <span class="badge bg-success">Completed</span>
+                                    break;
+                                case ApplicationStatus.ChangeRejected:
+
+                                    <span class="badge bg-danger">Change Rejected</span>
+                                    break;
+                            }
+                        </td>
+                        <td>
+                            @if (app.Status == ApplicationStatus.Approved)
+                            {
+                                <a class="btn btn-primary btn-sm" asp-action="EditFields" asp-route-id="@app.Id">Edit Fields</a>
+                            }
+                            @if (app.Status == ApplicationStatus.Pending || app.Status == ApplicationStatus.Approved)
+                            {
+                                <form asp-action="DeleteApplication" method="post" class="d-inline">
+                                    <input type="hidden" name="id" value="@app.Id" />
+                                    <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('Delete this application?');">Delete</button>
+                                </form>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>

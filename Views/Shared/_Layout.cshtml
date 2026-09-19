@@ -48,21 +48,15 @@
                             }
                             @if (User.IsInRole("Moderator"))
                             {
-                                <li class="nav-item">
-                                    <a class="nav-link custom-nav-link" asp-controller="Moderator" asp-action="Dashboard">Moderator Dashboard</a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link custom-nav-link" asp-controller="Moderator" asp-action="PendingUsers">Pending Users</a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link custom-nav-link" asp-controller="Moderator" asp-action="AllUsers">All Users</a>
-                                </li>
+                                <li class="nav-item"><a class="nav-link custom-nav-link" asp-controller="Moderator" asp-action="Dashboard">Moderator Dashboard</a></li>
+                                <li class="nav-item"><a class="nav-link custom-nav-link" asp-controller="Moderator" asp-action="PendingUsers">Pending Users</a></li>
+                                <li class="nav-item"><a class="nav-link custom-nav-link" asp-controller="Moderator" asp-action="AllUsers">All Users</a></li>
+                                <li class="nav-item"><a class="nav-link custom-nav-link" asp-controller="Moderator" asp-action="Applications">Applications</a></li>
                             }
                             @if (User.IsInRole("User"))
                             {
-                                <li class="nav-item">
-                                    <a class="nav-link custom-nav-link" asp-controller="User" asp-action="Dashboard">My Dashboard</a>
-                                </li>
+                                <li class="nav-item"><a class="nav-link custom-nav-link" asp-controller="User" asp-action="Dashboard">My Dashboard</a></li>
+                                <li class="nav-item"><a class="nav-link custom-nav-link" asp-controller="User" asp-action="MyApplication">My Applications</a></li>
                             }
                         }
                     </ul>

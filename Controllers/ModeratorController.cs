@@ -1,8 +1,9 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using NID_Project.Models;
 using Microsoft.EntityFrameworkCore;
+using NID_Project.Data;
+using NID_Project.Models;
 using System;
 using System.Linq;
 
@@ -12,10 +13,12 @@ namespace NID_Project.Controllers
     public class ModeratorController : Controller
     {
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly ApplicationDbContext _context;
 
-        public ModeratorController(UserManager<ApplicationUser> userManager)
+        public ModeratorController(UserManager<ApplicationUser> userManager, ApplicationDbContext context)
         {
             _userManager = userManager;
+            _context = context;
         }
 
         // Helper to check if current moderator is blocked
@@ -150,6 +153,142 @@ namespace NID_Project.Controllers
                 TempData["SuccessMessage"] = "User unblocked successfully.";
             }
             return RedirectToAction("AllUsers");
+        }
+
+        public async Task<IActionResult> Applications()
+        {
+            if (await IsBlocked()) return RedirectToAction("Blocked");
+
+            var apps = await _context.EditApplications
+                .Include(a => a.User)
+                .Include(a => a.ReviewedByModerator)
+                .Include(a => a.ChangeReviewedByModerator)
+                .OrderByDescending(a => a.CreatedAt)
+                .ToListAsync();
+            return View(apps);
+        }
+
+        public async Task<IActionResult> ApplicationDetails(int id)
+        {
+            if (await IsBlocked()) return RedirectToAction("Blocked");
+
+            var app = await _context.EditApplications
+                .Include(a => a.User)
+                .Include(a => a.ReviewedByModerator)
+                .Include(a => a.ChangeReviewedByModerator)
+                .FirstOrDefaultAsync(a => a.Id == id);
+            if (app == null) return NotFound();
+
+            return View(app);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ReviewApplication(int id, string action, string? message)
+        {
+            if (await IsBlocked()) return RedirectToAction("Blocked");
+
+            var mod = await _userManager.GetUserAsync(User);
+            var app = await _context.EditApplications.FirstOrDefaultAsync(a => a.Id == id);
+            if (app == null) return NotFound();
+            if (app.Status != ApplicationStatus.Pending)
+            {
+                TempData["ErrorMessage"] = "This application is not pending.";
+                return RedirectToAction("ApplicationDetails", new { id });
+            }
+
+            if (action == "reject" && string.IsNullOrWhiteSpace(message))
+            {
+                TempData["ErrorMessage"] = "Rejection message is required.";
+                return RedirectToAction("ApplicationDetails", new { id });
+            }
+
+            app.ReviewedByModeratorId = mod!.Id;
+            app.ReviewedAt = DateTime.UtcNow;
+            app.ReviewMessage = message;
+            app.Status = action == "approve" ? ApplicationStatus.Approved : ApplicationStatus.Rejected;
+            await _context.SaveChangesAsync();
+
+            TempData["SuccessMessage"] = $"Application {(action == "approve" ? "approved" : "rejected")}.";
+            return RedirectToAction("ApplicationDetails", new { id });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ReviewChanges(int id, string action, string? message)
+        {
+            if (await IsBlocked()) return RedirectToAction("Blocked");
+
+            var mod = await _userManager.GetUserAsync(User);
+            var app = await _context.EditApplications.FirstOrDefaultAsync(a => a.Id == id);
+            if (app == null) return NotFound();
+            if (app.Status != ApplicationStatus.Edited)
+            {
+                TempData["ErrorMessage"] = "No edits are awaiting review.";
+                return RedirectToAction("ApplicationDetails", new { id });
+            }
+
+            if (action == "reject" && string.IsNullOrWhiteSpace(message))
+            {
+                TempData["ErrorMessage"] = "Rejection message is required.";
+                return RedirectToAction("ApplicationDetails", new { id });
+            }
+
+            app.ChangeReviewedByModeratorId = mod!.Id;
+            app.ChangeReviewedAt = DateTime.UtcNow;
+            app.ChangeReviewMessage = message;
+
+            if (action == "approve")
+            {
+                var user = await _userManager.FindByIdAsync(app.UserId);
+                if (user == null) return NotFound();
+
+                var json = app.EditedDataJson ?? "{}";
+                Dictionary<string, FieldChange> changes;
+                try
+                {
+                    changes = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, FieldChange>>(json)
+                              ?? new Dictionary<string, FieldChange>();
+                }
+                catch
+                {
+                    // Fallback for applications created before the FieldChange migration
+                    var oldStyle = System.Text.Json.JsonSerializer
+                        .Deserialize<Dictionary<string, string?>>(json)
+                        ?? new Dictionary<string, string?>();
+                    changes = oldStyle.ToDictionary(kv => kv.Key, kv => new FieldChange { OldValue = null, NewValue = kv.Value });
+                }
+
+                foreach (var kv in changes)
+                {
+                    var newValue = kv.Value.NewValue;
+                    switch (kv.Key)
+                    {
+                        case "FullName": user.FullName = newValue ?? user.FullName; break;
+                        case "FatherName": user.FatherName = newValue; break;
+                        case "MotherName": user.MotherName = newValue; break;
+                        case "DateOfBirth": if (DateTime.TryParse(newValue, out var d)) user.DateOfBirth = d; break;
+                        case "Gender": user.Gender = newValue; break;
+                        case "Nationality": user.Nationality = newValue; break;
+                        case "Religion": user.Religion = newValue; break;
+                        case "Occupation": user.Occupation = newValue; break;
+                        case "BloodGroup": user.BloodGroup = newValue; break;
+                        case "PresentAddress": user.PresentAddress = newValue; break;
+                        case "PermanentAddress": user.PermanentAddress = newValue; break;
+                        case "PhotoPath": user.PhotoPath = newValue; break;
+                    }
+                }
+                await _userManager.UpdateAsync(user);
+                app.Status = ApplicationStatus.Completed;
+                TempData["SuccessMessage"] = "Changes approved and applied to the user.";
+            }
+            else
+            {
+                app.Status = ApplicationStatus.ChangeRejected;
+                TempData["SuccessMessage"] = "Changes rejected.";
+            }
+            await _context.SaveChangesAsync();
+            return RedirectToAction("ApplicationDetails", new { id });
         }
 
         public IActionResult Blocked()

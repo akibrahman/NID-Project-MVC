@@ -1,0 +1,64 @@
+﻿@model IEnumerable<EditApplication>
+@{
+    ViewData["Title"] = "Applications";
+}
+
+<div class="container">
+    <h2>All Edit Applications</h2>
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+    }
+
+    @if (!Model.Any())
+    {
+        <p>No applications yet.</p>
+    }
+    else
+    {
+        <table class="table table-striped">
+            <thead>
+                <tr><th>Applicant</th><th>Requested</th><th>Created</th><th>Status</th><th></th></tr>
+            </thead>
+            <tbody>
+                @foreach (var a in Model)
+                {
+                    <tr>
+                        <td>@a.User?.FullName</td>
+                        <td>@a.RequestedFields.Replace(",", ", ")</td>
+                        <td>@a.CreatedAt.ToString("dd MMM yyyy HH:mm")</td>
+                        <td>
+                            @switch (a.Status)
+                            {
+                                case ApplicationStatus.Pending:
+                                    <span class="badge bg-warning text-dark">Pending</span>
+                                    break;
+                                case ApplicationStatus.Approved:
+
+                                    <span class="badge bg-info text-dark">Approved (awaiting user edit)</span>
+                                    break;
+                                case ApplicationStatus.Rejected:
+
+                                    <span class="badge bg-danger">Rejected</span>
+                                    break;
+                                case ApplicationStatus.Edited:
+
+                                    <span class="badge bg-primary">Edited (awaiting review)</span>
+                                    break;
+                                case ApplicationStatus.Completed:
+
+                                    <span class="badge bg-success">Completed</span>
+                                    break;
+                                case ApplicationStatus.ChangeRejected:
+
+                                    <span class="badge bg-danger">Change Rejected</span>
+                                    break;
+                            }
+                        </td>
+                        <td><a asp-action="ApplicationDetails" asp-route-id="@a.Id" class="btn btn-info btn-sm">View</a></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>

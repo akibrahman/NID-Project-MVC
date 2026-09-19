@@ -1,6 +1,8 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using NID_Project.Data;
 using NID_Project.Models;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
@@ -14,11 +16,16 @@ namespace NID_Project.Controllers
     {
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IWebHostEnvironment _webHostEnvironment;
+        private readonly ApplicationDbContext _context;
 
-        public UserController(UserManager<ApplicationUser> userManager, IWebHostEnvironment webHostEnvironment)
+        public UserController(
+            UserManager<ApplicationUser> userManager,
+            IWebHostEnvironment webHostEnvironment,
+            ApplicationDbContext context)
         {
             _userManager = userManager;
             _webHostEnvironment = webHostEnvironment;
+            _context = context;
         }
 
         public async Task<IActionResult> Dashboard()
@@ -180,6 +187,242 @@ namespace NID_Project.Controllers
             });
 
             return document.GeneratePdf();
+        }
+
+        // ----- My Applications list -----
+        public async Task<IActionResult> MyApplication()
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null) return RedirectToAction("Login", "Account");
+
+            var apps = await _context.EditApplications
+                .Include(a => a.ReviewedByModerator)
+                .Include(a => a.ChangeReviewedByModerator)
+                .Where(a => a.UserId == user.Id)
+                .OrderByDescending(a => a.CreatedAt)
+                .ToListAsync();
+
+            var lastApp = apps.FirstOrDefault();
+            var canCreate = lastApp == null || lastApp.CreatedAt.AddMonths(1) <= DateTime.UtcNow;
+            ViewBag.CanCreate = canCreate && !user.IsBlocked;
+
+            if (!canCreate && lastApp != null)
+                ViewBag.DaysUntilNext = (int)Math.Ceiling((lastApp.CreatedAt.AddMonths(1) - DateTime.UtcNow).TotalDays);
+
+            var active = apps.FirstOrDefault(a =>
+                a.Status == ApplicationStatus.Pending ||
+                a.Status == ApplicationStatus.Approved ||
+                a.Status == ApplicationStatus.Edited);
+            ViewBag.ActiveApp = active;
+            ViewBag.IsBlocked = user.IsBlocked;
+
+            return View(apps);
+        }
+
+        // ----- Create application -----
+        [HttpGet]
+        public async Task<IActionResult> CreateApplication()
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null) return RedirectToAction("Login", "Account");
+            if (user.IsBlocked) { TempData["ErrorMessage"] = "Blocked users cannot apply."; return RedirectToAction("MyApplication"); }
+
+            var lastApp = await _context.EditApplications
+                .Where(a => a.UserId == user.Id)
+                .OrderByDescending(a => a.CreatedAt).FirstOrDefaultAsync();
+            if (lastApp != null && lastApp.CreatedAt.AddMonths(1) > DateTime.UtcNow)
+            {
+                TempData["ErrorMessage"] = "You cannot apply yet.";
+                return RedirectToAction("MyApplication");
+            }
+            if (await _context.EditApplications.AnyAsync(a => a.UserId == user.Id &&
+                (a.Status == ApplicationStatus.Pending || a.Status == ApplicationStatus.Approved || a.Status == ApplicationStatus.Edited)))
+            {
+                TempData["ErrorMessage"] = "You have an active application.";
+                return RedirectToAction("MyApplication");
+            }
+
+            return View(new CreateApplicationViewModel());
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CreateApplication(CreateApplicationViewModel model)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null) return RedirectToAction("Login", "Account");
+            if (user.IsBlocked) { TempData["ErrorMessage"] = "Blocked users cannot apply."; return RedirectToAction("MyApplication"); }
+
+            var lastApp = await _context.EditApplications
+                .Where(a => a.UserId == user.Id)
+                .OrderByDescending(a => a.CreatedAt).FirstOrDefaultAsync();
+            if (lastApp != null && lastApp.CreatedAt.AddMonths(1) > DateTime.UtcNow)
+            {
+                TempData["ErrorMessage"] = "You cannot apply yet.";
+                return RedirectToAction("MyApplication");
+            }
+            if (await _context.EditApplications.AnyAsync(a => a.UserId == user.Id &&
+                (a.Status == ApplicationStatus.Pending || a.Status == ApplicationStatus.Approved || a.Status == ApplicationStatus.Edited)))
+            {
+                TempData["ErrorMessage"] = "You have an active application.";
+                return RedirectToAction("MyApplication");
+            }
+
+            var fields = new List<string>();
+            if (model.ChangeFullName) fields.Add("FullName");
+            if (model.ChangeFatherName) fields.Add("FatherName");
+            if (model.ChangeMotherName) fields.Add("MotherName");
+            if (model.ChangeDateOfBirth) fields.Add("DateOfBirth");
+            if (model.ChangeGender) fields.Add("Gender");
+            if (model.ChangeNationality) fields.Add("Nationality");
+            if (model.ChangeReligion) fields.Add("Religion");
+            if (model.ChangeOccupation) fields.Add("Occupation");
+            if (model.ChangeBloodGroup) fields.Add("BloodGroup");
+            if (model.ChangePresentAddress) fields.Add("PresentAddress");
+            if (model.ChangePermanentAddress) fields.Add("PermanentAddress");
+            if (model.ChangePhoto) fields.Add("PhotoPath");
+
+            if (!fields.Any())
+            {
+                ModelState.AddModelError("", "Select at least one field to change.");
+                return View(model);
+            }
+
+            _context.EditApplications.Add(new EditApplication
+            {
+                UserId = user.Id,
+                RequestedFields = string.Join(",", fields),
+                CreatedAt = DateTime.UtcNow,
+                Status = ApplicationStatus.Pending
+            });
+            await _context.SaveChangesAsync();
+
+            TempData["SuccessMessage"] = "Application submitted. Awaiting moderator review.";
+            return RedirectToAction("MyApplication");
+        }
+
+        // ----- Delete pending/approved application -----
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteApplication(int id)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null) return RedirectToAction("Login", "Account");
+
+            var app = await _context.EditApplications.FirstOrDefaultAsync(a => a.Id == id && a.UserId == user.Id);
+            if (app == null) return NotFound();
+
+            if (app.Status != ApplicationStatus.Pending && app.Status != ApplicationStatus.Approved)
+            {
+                TempData["ErrorMessage"] = "Only pending or approved applications can be deleted.";
+                return RedirectToAction("MyApplication");
+            }
+
+            _context.EditApplications.Remove(app);
+            await _context.SaveChangesAsync();
+            TempData["SuccessMessage"] = "Application deleted. You can now submit a new one.";
+            return RedirectToAction("MyApplication");
+        }
+
+        // ----- Edit fields after approval -----
+        [HttpGet]
+        public async Task<IActionResult> EditFields(int id)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null) return RedirectToAction("Login", "Account");
+            if (user.IsBlocked) { TempData["ErrorMessage"] = "Blocked users cannot edit."; return RedirectToAction("MyApplication"); }
+
+            var app = await _context.EditApplications.FirstOrDefaultAsync(a => a.Id == id && a.UserId == user.Id);
+            if (app == null) return NotFound();
+            if (app.Status != ApplicationStatus.Approved)
+            {
+                TempData["ErrorMessage"] = "This application is not in an editable state.";
+                return RedirectToAction("MyApplication");
+            }
+
+            return View(new UserEditFieldsViewModel
+            {
+                ApplicationId = app.Id,
+                RequestedFields = app.RequestedFields.Split(',').ToList()
+            });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> EditFields(UserEditFieldsViewModel model)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null) return RedirectToAction("Login", "Account");
+            if (user.IsBlocked) { TempData["ErrorMessage"] = "Blocked users cannot edit."; return RedirectToAction("MyApplication"); }
+
+            var app = await _context.EditApplications.FirstOrDefaultAsync(a => a.Id == model.ApplicationId && a.UserId == user.Id);
+            if (app == null) return NotFound();
+            if (app.Status != ApplicationStatus.Approved)
+            {
+                TempData["ErrorMessage"] = "This application is not in an editable state.";
+                return RedirectToAction("MyApplication");
+            }
+
+            var requested = app.RequestedFields.Split(',').ToList();
+            var changes = new Dictionary<string, FieldChange>();
+
+            if (requested.Contains("FullName"))
+                changes["FullName"] = new FieldChange { OldValue = user.FullName, NewValue = model.FullName };
+            if (requested.Contains("FatherName"))
+                changes["FatherName"] = new FieldChange { OldValue = user.FatherName, NewValue = model.FatherName };
+            if (requested.Contains("MotherName"))
+                changes["MotherName"] = new FieldChange { OldValue = user.MotherName, NewValue = model.MotherName };
+            if (requested.Contains("DateOfBirth"))
+                changes["DateOfBirth"] = new FieldChange
+                {
+                    OldValue = user.DateOfBirth?.ToString("yyyy-MM-dd"),
+                    NewValue = model.DateOfBirth?.ToString("yyyy-MM-dd")
+                };
+            if (requested.Contains("Gender"))
+                changes["Gender"] = new FieldChange { OldValue = user.Gender, NewValue = model.Gender };
+            if (requested.Contains("Nationality"))
+                changes["Nationality"] = new FieldChange { OldValue = user.Nationality, NewValue = model.Nationality };
+            if (requested.Contains("Religion"))
+                changes["Religion"] = new FieldChange { OldValue = user.Religion, NewValue = model.Religion };
+            if (requested.Contains("Occupation"))
+                changes["Occupation"] = new FieldChange { OldValue = user.Occupation, NewValue = model.Occupation };
+            if (requested.Contains("BloodGroup"))
+                changes["BloodGroup"] = new FieldChange { OldValue = user.BloodGroup, NewValue = model.BloodGroup };
+            if (requested.Contains("PresentAddress"))
+                changes["PresentAddress"] = new FieldChange { OldValue = user.PresentAddress, NewValue = model.PresentAddress };
+            if (requested.Contains("PermanentAddress"))
+                changes["PermanentAddress"] = new FieldChange { OldValue = user.PermanentAddress, NewValue = model.PermanentAddress };
+
+            if (requested.Contains("PhotoPath") && model.Photo != null)
+            {
+                var ext = Path.GetExtension(model.Photo.FileName).ToLowerInvariant();
+                if (ext != ".jpg" && ext != ".jpeg" && ext != ".png")
+                {
+                    ModelState.AddModelError("Photo", "Only JPG, JPEG, or PNG files are allowed.");
+                    model.RequestedFields = requested;
+                    return View(model);
+                }
+                var folder = Path.Combine(_webHostEnvironment.WebRootPath, "uploads");
+                if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
+                var fileName = Guid.NewGuid() + "_" + Path.GetFileName(model.Photo.FileName);
+                var filePath = Path.Combine(folder, fileName);
+                using (var fs = new FileStream(filePath, FileMode.Create))
+                    await model.Photo.CopyToAsync(fs);
+
+                changes["PhotoPath"] = new FieldChange
+                {
+                    OldValue = user.PhotoPath,
+                    NewValue = "/uploads/" + fileName
+                };
+            }
+
+            app.EditedDataJson = System.Text.Json.JsonSerializer.Serialize(changes);
+            app.EditedAt = DateTime.UtcNow;
+            app.Status = ApplicationStatus.Edited;
+            await _context.SaveChangesAsync();
+
+            TempData["SuccessMessage"] = "Edits submitted. Awaiting moderator review.";
+            return RedirectToAction("MyApplication");
         }
     }
 }

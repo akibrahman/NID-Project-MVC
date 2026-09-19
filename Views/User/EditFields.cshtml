@@ -1,0 +1,107 @@
+﻿@model UserEditFieldsViewModel
+@{
+    ViewData["Title"] = "Edit Fields";
+}
+
+<div class="container">
+    <h2>Edit Selected Fields</h2>
+    <p>Only the approved fields are editable below.</p>
+
+    <form asp-action="EditFields" method="post" enctype="multipart/form-data">
+        <input type="hidden" asp-for="ApplicationId" />
+        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+        @if (Model.RequestedFields.Contains("FullName"))
+        {
+            <div class="mb-3">
+                <label class="form-label">Full Name</label>
+                <input asp-for="FullName" class="form-control" />
+            </div>
+        }
+        @if (Model.RequestedFields.Contains("FatherName"))
+        {
+            <div class="mb-3">
+                <label class="form-label">Father's Name</label>
+                <input asp-for="FatherName" class="form-control" />
+            </div>
+        }
+        @if (Model.RequestedFields.Contains("MotherName"))
+        {
+            <div class="mb-3">
+                <label class="form-label">Mother's Name</label>
+                <input asp-for="MotherName" class="form-control" />
+            </div>
+        }
+        @if (Model.RequestedFields.Contains("DateOfBirth"))
+        {
+            <div class="mb-3">
+                <label class="form-label">Date of Birth</label>
+                <input asp-for="DateOfBirth" type="date" class="form-control" />
+            </div>
+        }
+        @if (Model.RequestedFields.Contains("Gender"))
+        {
+            <div class="mb-3">
+                <label class="form-label">Gender</label>
+                <select asp-for="Gender" class="form-select">
+                    <option value="">Select</option>
+                    <option>Male</option>
+                    <option>Female</option>
+                    <option>Other</option>
+                </select>
+            </div>
+        }
+        @if (Model.RequestedFields.Contains("Nationality"))
+        {
+            <div class="mb-3">
+                <label class="form-label">Nationality</label>
+                <input asp-for="Nationality" class="form-control" />
+            </div>
+        }
+        @if (Model.RequestedFields.Contains("Religion"))
+        {
+            <div class="mb-3">
+                <label class="form-label">Religion</label>
+                <input asp-for="Religion" class="form-control" />
+            </div>
+        }
+        @if (Model.RequestedFields.Contains("Occupation"))
+        {
+            <div class="mb-3">
+                <label class="form-label">Occupation</label>
+                <input asp-for="Occupation" class="form-control" />
+            </div>
+        }
+        @if (Model.RequestedFields.Contains("BloodGroup"))
+        {
+            <div class="mb-3">
+                <label class="form-label">Blood Group</label>
+                <input asp-for="BloodGroup" class="form-control" />
+            </div>
+        }
+        @if (Model.RequestedFields.Contains("PresentAddress"))
+        {
+            <div class="mb-3">
+                <label class="form-label">Present Address</label>
+                <textarea asp-for="PresentAddress" class="form-control"></textarea>
+            </div>
+        }
+        @if (Model.RequestedFields.Contains("PermanentAddress"))
+        {
+            <div class="mb-3">
+                <label class="form-label">Permanent Address</label>
+                <textarea asp-for="PermanentAddress" class="form-control"></textarea>
+            </div>
+        }
+        @if (Model.RequestedFields.Contains("PhotoPath"))
+        {
+            <div class="mb-3">
+                <label class="form-label">New Photo (JPG/PNG only)</label>
+                <input asp-for="Photo" type="file" accept=".jpg,.jpeg,.png" class="form-control" />
+            </div>
+        }
+
+        <button type="submit" class="btn btn-primary">Submit Edits</button>
+        <a asp-action="MyApplication" class="btn btn-secondary">Cancel</a>
+    </form>
+</div>
