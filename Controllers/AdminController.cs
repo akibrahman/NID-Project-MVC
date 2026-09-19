@@ -20,6 +20,21 @@ namespace NID_Project.Controllers
         public async Task<IActionResult> Dashboard()
         {
             var moderators = await _userManager.GetUsersInRoleAsync("Moderator");
+            var users = await _userManager.GetUsersInRoleAsync("User");
+
+            var model = new AdminDashboardViewModel
+            {
+                TotalModerators = moderators.Count,
+                TotalUsers = users.Count,
+                TotalPendingUsers = users.Count(u => !u.IsApproved)
+            };
+
+            return View(model);
+        }
+
+        public async Task<IActionResult> Moderators()
+        {
+            var moderators = await _userManager.GetUsersInRoleAsync("Moderator");
             return View(moderators);
         }
 
@@ -48,7 +63,7 @@ namespace NID_Project.Controllers
                 {
                     await _userManager.AddToRoleAsync(user, "Moderator");
                     TempData["SuccessMessage"] = "Moderator created successfully.";
-                    return RedirectToAction("Dashboard");
+                    return RedirectToAction("Moderators");
                 }
 
                 foreach (var error in result.Errors)
@@ -71,7 +86,7 @@ namespace NID_Project.Controllers
                 await _userManager.UpdateAsync(mod);
                 TempData["SuccessMessage"] = "Moderator blocked.";
             }
-            return RedirectToAction("Dashboard");
+            return RedirectToAction("Moderators");
         }
 
         [HttpPost]
@@ -85,7 +100,7 @@ namespace NID_Project.Controllers
                 await _userManager.UpdateAsync(mod);
                 TempData["SuccessMessage"] = "Moderator unblocked.";
             }
-            return RedirectToAction("Dashboard");
+            return RedirectToAction("Moderators");
         }
     }
 }

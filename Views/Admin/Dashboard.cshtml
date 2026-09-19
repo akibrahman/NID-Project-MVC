@@ -1,74 +1,88 @@
-﻿@model IEnumerable<ApplicationUser>
+﻿@model AdminDashboardViewModel
 @{
     ViewData["Title"] = "Admin Dashboard";
 }
 
-<div class="row">
-    <div class="col-md-12">
-        <div class="card shadow">
-            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-                <h4 class="mb-0">Admin Dashboard</h4>
-                <a class="btn btn-success btn-sm" asp-controller="Admin" asp-action="CreateModerator">Create Moderator</a>
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Admin Dashboard</h2>
+        <a class="btn btn-success" asp-controller="Admin" asp-action="CreateModerator">Create Moderator</a>
+    </div>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+    }
+
+    <div class="row">
+        <!-- Total Moderators -->
+        <div class="col-md-4 mb-3">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0 me-3">
+                            <div class="stat-icon bg-primary-subtle text-primary">
+                                <i class="bi bi-person-badge"></i>
+                            </div>
+                        </div>
+                        <div>
+                            <h6 class="text-muted mb-1">Total Moderators</h6>
+                            <h2 class="mb-0 fw-bold">@Model.TotalModerators</h2>
+                        </div>
+                    </div>
+                    <a asp-controller="Admin" asp-action="Moderators" class="stretched-link"></a>
+                </div>
             </div>
-            <div class="card-body">
-                @if (TempData["SuccessMessage"] != null)
-                {
-                    <div class="alert alert-success">@TempData["SuccessMessage"]</div>
-                }
-                <h5>Moderators (@Model.Count())</h5>
-                @if (!Model.Any())
-                {
-                    <p>No moderators created yet.</p>
-                }
-                else
-                {
-                    <table class="table table-striped">
-                        <thead>
-                            <tr>
-                                <th>Full Name</th>
-                                <th>Email</th>
-                                <th>Status</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var moderator in Model)
-                            {
-                                <tr>
-                                    <td>@moderator.FullName</td>
-                                    <td>@moderator.Email</td>
-                                    <td>
-                                        @if (moderator.IsBlocked)
-                                        {
-                                            <span class="badge bg-danger">Blocked</span>
-                                        }
-                                        else
-                                        {
-                                            <span class="badge bg-success">Active</span>
-                                        }
-                                    </td>
-                                    <td>
-                                        @if (moderator.IsBlocked)
-                                        {
-                                            <form asp-action="UnblockModerator" method="post" class="d-inline">
-                                                <input type="hidden" name="id" value="@moderator.Id" />
-                                                <button type="submit" class="btn btn-success btn-sm">Unblock</button>
-                                            </form>
-                                        }
-                                        else
-                                        {
-                                            <form asp-action="BlockModerator" method="post" class="d-inline">
-                                                <input type="hidden" name="id" value="@moderator.Id" />
-                                                <button type="submit" class="btn btn-warning btn-sm">Block</button>
-                                            </form>
-                                        }
-                                    </td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                }
+        </div>
+
+        <!-- Total Users -->
+        <div class="col-md-4 mb-3">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0 me-3">
+                            <div class="stat-icon bg-success-subtle text-success">
+                                <i class="bi bi-people"></i>
+                            </div>
+                        </div>
+                        <div>
+                            <h6 class="text-muted mb-1">Total Users</h6>
+                            <h2 class="mb-0 fw-bold">@Model.TotalUsers</h2>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pending Users -->
+        <div class="col-md-4 mb-3">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0 me-3">
+                            <div class="stat-icon bg-warning-subtle text-warning">
+                                <i class="bi bi-hourglass-split"></i>
+                            </div>
+                        </div>
+                        <div>
+                            <h6 class="text-muted mb-1">Pending Users</h6>
+                            <h2 class="mb-0 fw-bold">@Model.TotalPendingUsers</h2>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 </div>
+
+<style>
+    .stat-icon {
+        width: 60px;
+        height: 60px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 12px;
+        font-size: 1.6rem;
+    }
+</style>
