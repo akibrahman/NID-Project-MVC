@@ -1,6 +1,6 @@
 # National ID Card Management System
 
-An ASP.NET Core MVC web application for managing National ID (NID) applications. The system supports three roles: **Admin**, **Moderator**, and **User**. Users can register with their personal details and upload a photo. Moderators review and approve pending registrations, block/unblock users, and handle user data edit applications. Admins manage moderators. The design is clean, light-themed, and built with Bootstrap.
+An ASP.NET Core MVC web application for managing National ID (NID) applications. The system supports three roles: **Admin**, **Moderator**, and **User**. Users can register with their personal details and upload a photo. Moderators review and approve pending registrations, block/unblock users, and handle user data edit applications. Admins manage moderators and monitor system-wide activity through analytics. The design is clean, light-themed, and built with Bootstrap.
 
 ## Features
 
@@ -11,7 +11,7 @@ An ASP.NET Core MVC web application for managing National ID (NID) applications.
   - New registrations are marked as **Pending Approval**.
 
 - **Role-Based Dashboards**  
-  - **Admin Dashboard**: Statistics overview (total moderators, total users, pending users). Separate **Moderators** page for listing, creating, blocking, and unblocking moderators.
+  - **Admin Dashboard**: Analytics overview with four stat cards (Total Moderators, Total Users, Pending Users, Total Applications), a **pie chart** of applications grouped by status, and a **bar chart** of moderator activity (reviews handled). Separate **Moderators** page for listing, creating, blocking, and unblocking moderators.
   - **Moderator Dashboard**: View own profile, list of pending users, approve users, view all approved users (paginated, 10 per page), block/unblock users, view user details, and manage **Edit Applications**.
   - **User Dashboard**: Display personal information, NID status, approval status, blocked status, and profile photo.
 
@@ -50,6 +50,16 @@ An ASP.NET Core MVC web application for managing National ID (NID) applications.
     - Blocked users cannot create or edit applications.
     - Blocked moderators cannot review applications.
 
+- **Admin Analytics Dashboard**  
+  - **Stat cards**:
+    - Total Moderators (clickable → opens Moderators page)
+    - Total Users
+    - Pending Users (not yet approved)
+    - Total Applications (all edit applications in the system)
+  - **Pie chart**: Applications grouped by status (`Pending`, `Approved`, `Rejected`, `Edited`, `Completed`, `ChangeRejected`). Renders only when at least one application exists.
+  - **Bar chart**: Moderator activity — number of reviews handled by each moderator (both Stage 1 and Stage 2 combined). Includes every moderator, even those with zero reviews, so performance can be compared at a glance.
+  - Charts are rendered with **Chart.js** (loaded via CDN), so no additional NuGet package is required.
+
 - **Authentication & Authorization**  
   - Uses ASP.NET Core Identity with role-based access control.
   - Custom `ApplicationUser` extends IdentityUser with NID fields and an `IsBlocked` flag.
@@ -60,6 +70,7 @@ An ASP.NET Core MVC web application for managing National ID (NID) applications.
   - Modern navbar with logo, animated hover underline, and red logout button.
   - Full-height layout with an enhanced multi-column footer.
   - Status badges for approval, blocking, and application states.
+  - Dashboard charts for admin-side analytics.
 
 ## Tech Stack
 
@@ -68,6 +79,7 @@ An ASP.NET Core MVC web application for managing National ID (NID) applications.
 - **Authentication**: ASP.NET Core Identity
 - **ORM**: Entity Framework Core (Code First)
 - **UI**: Bootstrap 5, Razor Views, Bootstrap Icons
+- **Charts**: Chart.js (loaded via CDN)
 - **File Storage**: Local `wwwroot/uploads` for profile photos
 - **PDF Generation**: QuestPDF
 - **Image Processing**: SkiaSharp (for re-encoding photos to PNG before PDF embedding)
@@ -79,6 +91,7 @@ An ASP.NET Core MVC web application for managing National ID (NID) applications.
 - Visual Studio 2022 (or VS Code with C# extension)
 - SQL Server (LocalDB or full instance)
 - Git (optional, for version control)
+- Internet connection (for Chart.js CDN; the app still works without it, but the admin charts won't render)
 
 ## Setup Instructions
 
@@ -113,6 +126,8 @@ Install-Package QuestPDF
 Install-Package SkiaSharp
 ```
 
+> **Note:** Chart.js is loaded via CDN in the Admin Dashboard view, so no NuGet package is required for the charts.
+
 ### 4. Apply Migrations
 
 In Package Manager Console:
@@ -141,7 +156,7 @@ Log in as admin to create moderator accounts.
 
 | Role      | Permissions                                                                 |
 |-----------|-----------------------------------------------------------------------------|
-| **Admin** | View statistics dashboard, create moderators, view moderator list, block/unblock moderators |
+| **Admin** | View analytics dashboard (stat cards, pie chart, moderator activity bar chart), create moderators, view moderator list, block/unblock moderators |
 | **Moderator** | View pending users, approve users (generates NID number), view all approved users (paginated), block/unblock users, view user details, review edit applications (both stages) |
 | **User**   | Register, view dashboard/profile, see approval & blocked status, download NID PDF (if approved and not blocked), apply for data edits once per month, delete pending/approved applications, edit approved fields, track full application history |
 
@@ -154,7 +169,7 @@ Log in as admin to create moderator accounts.
 NID_Project/
 ├── Controllers/
 │   ├── AccountController.cs
-│   ├── AdminController.cs
+│   ├── AdminController.cs            (analytics dashboard + moderator management)
 │   ├── ModeratorController.cs
 │   └── UserController.cs
 ├── Data/
@@ -164,7 +179,7 @@ NID_Project/
 │   ├── RegisterViewModel.cs
 │   ├── LoginViewModel.cs
 │   ├── CreateModeratorViewModel.cs
-│   ├── AdminDashboardViewModel.cs
+│   ├── AdminDashboardViewModel.cs    (stats + chart data)
 │   ├── PaginatedList.cs
 │   ├── EditApplication.cs
 │   ├── CreateApplicationViewModel.cs
@@ -176,7 +191,7 @@ NID_Project/
 │   │   ├── Register.cshtml
 │   │   └── AccessDenied.cshtml
 │   ├── Admin/
-│   │   ├── Dashboard.cshtml          (stats cards)
+│   │   ├── Dashboard.cshtml          (stat cards + charts)
 │   │   ├── Moderators.cshtml         (moderator list with block/unblock)
 │   │   └── CreateModerator.cshtml
 │   ├── Moderator/
@@ -207,8 +222,11 @@ NID_Project/
 
 1. **Admin Login**  
    - Use `admin@nid.gov.bd` / `Admin@123`  
-   - Dashboard shows total moderators, total users, and pending users.
-   - Click "Total Moderators" card or navbar link to open the Moderators page.
+   - Dashboard shows:
+     - Four stat cards: Total Moderators, Total Users, Pending Users, Total Applications.
+     - A **pie chart** breaking down all applications by their current status.
+     - A **bar chart** ranking moderators by the number of reviews they've handled.
+   - Click "Total Moderators" card or use the navbar "Moderators" link to open the Moderators page.
    - Create moderators; block or unblock them.
 
 2. **Moderator Login**  
@@ -244,6 +262,18 @@ NID_Project/
 - The monthly restriction is based on the `CreatedAt` timestamp of the most recent application.
 - Applications in `Pending` or `Approved` state can be deleted by the user, freeing them to submit a new one (if the monthly window permits).
 
+### Admin Analytics Details
+
+- **Pie chart** (`Applications by Status`) is populated from a `Dictionary<string, int>` in `AdminDashboardViewModel.ApplicationsByStatus`, grouped on `EditApplication.Status`. Colors are assigned via a fixed palette:
+  - `Pending` – amber
+  - `Approved` – cyan
+  - `Rejected` – red
+  - `Edited` – blue
+  - `Completed` – green
+  - `ChangeRejected` – gray
+- **Bar chart** (`Moderator Activity`) is populated from `AdminDashboardViewModel.ModeratorActivity`, a dictionary mapping moderator full name → count of reviews handled. The count includes **both** Stage 1 (`ReviewedByModerator`) and Stage 2 (`ChangeReviewedByModerator`) reviews, so a moderator who reviewed an application twice (once per stage) contributes 2 to their total. Moderators with zero reviews appear in the chart with a value of 0.
+- Charts are drawn with **Chart.js 4.x** loaded from jsDelivr CDN, and only initialize when their data is non-empty.
+
 ## Troubleshooting
 
 - **"Element with same key..." error in Visual Studio**: Delete the hidden `.vs` folder and rebuild. Also try running `dotnet run` from command line.
@@ -253,6 +283,8 @@ NID_Project/
 - **Users inserted directly via SQL not showing**: They must also be assigned the `User` role via the `AspNetUserRoles` table.
 - **Pagination error `IAsyncQueryProvider`**: Use `PaginatedList<T>.Create(...)` (synchronous) for in-memory lists, not `CreateAsync`.
 - **Old edit applications show blank previous value**: Applications created before the `FieldChange` model was introduced have no `OldValue`; the UI shows "-" for them.
+- **Charts not showing on Admin Dashboard**: Verify you have internet access so the Chart.js CDN can load. Open the browser console (F12) to check for CDN load errors. The rest of the dashboard (stat cards) still works without Chart.js.
+- **Moderator activity bar chart is empty**: This occurs when no moderator has performed any reviews yet. The chart auto-hides in that case and a "No moderator activity recorded yet." message is displayed.
 
 ## License
 

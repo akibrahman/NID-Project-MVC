@@ -1,9 +1,9 @@
 ﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using NID_Project.Data;
 using NID_Project.Models;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace NID_Project.Controllers
 {
@@ -11,10 +11,12 @@ namespace NID_Project.Controllers
     public class AdminController : Controller
     {
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly ApplicationDbContext _context;
 
-        public AdminController(UserManager<ApplicationUser> userManager)
+        public AdminController(UserManager<ApplicationUser> userManager, ApplicationDbContext context)
         {
             _userManager = userManager;
+            _context = context;
         }
 
         public async Task<IActionResult> Dashboard()
@@ -22,11 +24,52 @@ namespace NID_Project.Controllers
             var moderators = await _userManager.GetUsersInRoleAsync("Moderator");
             var users = await _userManager.GetUsersInRoleAsync("User");
 
+            // ---- Edit applications ----
+            var applications = await _context.EditApplications
+                .Include(a => a.ReviewedByModerator)
+                .Include(a => a.ChangeReviewedByModerator)
+                .ToListAsync();
+
+            var applicationsByStatus = applications
+                .GroupBy(a => a.Status.ToString())
+                .ToDictionary(g => g.Key, g => g.Count());
+
+            // ---- Moderator activity: count of stage 1 + stage 2 reviews per moderator ----
+            var activity = new Dictionary<string, int>();
+
+            // Initialize with all moderators (so those with 0 reviews still appear)
+            foreach (var mod in moderators)
+            {
+                activity[mod.FullName ?? mod.Email ?? "Unknown"] = 0;
+            }
+
+            foreach (var app in applications)
+            {
+                if (app.ReviewedByModerator != null)
+                {
+                    var name = app.ReviewedByModerator.FullName ?? app.ReviewedByModerator.Email ?? "Unknown";
+                    if (!activity.ContainsKey(name)) activity[name] = 0;
+                    activity[name]++;
+                }
+                if (app.ChangeReviewedByModerator != null)
+                {
+                    var name = app.ChangeReviewedByModerator.FullName ?? app.ChangeReviewedByModerator.Email ?? "Unknown";
+                    if (!activity.ContainsKey(name)) activity[name] = 0;
+                    activity[name]++;
+                }
+            }
+
+            // Sort descending by activity (optional but nice)
+            activity = activity.OrderByDescending(kv => kv.Value).ToDictionary(kv => kv.Key, kv => kv.Value);
+
             var model = new AdminDashboardViewModel
             {
                 TotalModerators = moderators.Count,
                 TotalUsers = users.Count,
-                TotalPendingUsers = users.Count(u => !u.IsApproved)
+                TotalPendingUsers = users.Count(u => !u.IsApproved),
+                TotalApplications = applications.Count,
+                ApplicationsByStatus = applicationsByStatus,
+                ModeratorActivity = activity
             };
 
             return View(model);

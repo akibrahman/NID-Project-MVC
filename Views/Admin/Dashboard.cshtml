@@ -1,6 +1,10 @@
 ﻿@model AdminDashboardViewModel
 @{
     ViewData["Title"] = "Admin Dashboard";
+    var statusKeys = string.Join(",", Model.ApplicationsByStatus.Keys);
+    var statusValues = string.Join(",", Model.ApplicationsByStatus.Values);
+    var modNames = string.Join(",", Model.ModeratorActivity.Keys.Select(k => $"\"{k}\""));
+    var modCounts = string.Join(",", Model.ModeratorActivity.Values);
 }
 
 <div class="container">
@@ -14,9 +18,9 @@
         <div class="alert alert-success">@TempData["SuccessMessage"]</div>
     }
 
+    <!-- Top stat cards -->
     <div class="row">
-        <!-- Total Moderators -->
-        <div class="col-md-4 mb-3">
+        <div class="col-md-3 mb-3">
             <div class="card shadow-sm border-0 h-100">
                 <div class="card-body">
                     <div class="d-flex align-items-center">
@@ -35,8 +39,7 @@
             </div>
         </div>
 
-        <!-- Total Users -->
-        <div class="col-md-4 mb-3">
+        <div class="col-md-3 mb-3">
             <div class="card shadow-sm border-0 h-100">
                 <div class="card-body">
                     <div class="d-flex align-items-center">
@@ -54,8 +57,7 @@
             </div>
         </div>
 
-        <!-- Pending Users -->
-        <div class="col-md-4 mb-3">
+        <div class="col-md-3 mb-3">
             <div class="card shadow-sm border-0 h-100">
                 <div class="card-body">
                     <div class="d-flex align-items-center">
@@ -69,6 +71,65 @@
                             <h2 class="mb-0 fw-bold">@Model.TotalPendingUsers</h2>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3 mb-3">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0 me-3">
+                            <div class="stat-icon bg-info-subtle text-info">
+                                <i class="bi bi-file-earmark-text"></i>
+                            </div>
+                        </div>
+                        <div>
+                            <h6 class="text-muted mb-1">Total Applications</h6>
+                            <h2 class="mb-0 fw-bold">@Model.TotalApplications</h2>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="row mt-3">
+        <!-- Pie chart: applications by status -->
+        <div class="col-md-5 mb-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Applications by Status</h5>
+                </div>
+                <div class="card-body">
+                    @if (Model.TotalApplications == 0)
+                    {
+                        <p class="text-muted text-center">No applications yet.</p>
+                    }
+                    else
+                    {
+                        <canvas id="statusPieChart" style="max-height:320px;"></canvas>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Bar chart: moderator activity -->
+        <div class="col-md-7 mb-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Moderator Activity (Reviews Handled)</h5>
+                </div>
+                <div class="card-body">
+                    @if (Model.ModeratorActivity.Count == 0 || Model.ModeratorActivity.Values.All(v => v == 0))
+                    {
+                        <p class="text-muted text-center">No moderator activity recorded yet.</p>
+                    }
+                    else
+                    {
+                        <canvas id="moderatorBarChart" style="max-height:320px;"></canvas>
+                    }
                 </div>
             </div>
         </div>
@@ -86,3 +147,75 @@
         font-size: 1.6rem;
     }
 </style>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+
+            // ---------- Pie Chart ----------
+            var pieCanvas = document.getElementById('statusPieChart');
+            if (pieCanvas) {
+                var statusKeys = "@Html.Raw(statusKeys)".split(",").filter(x => x.length > 0);
+                var statusValues = "@Html.Raw(statusValues)".split(",").filter(x => x.length > 0).map(Number);
+
+                var palette = [
+                    '#ffc107', // Pending
+                    '#0dcaf0', // Approved
+                    '#dc3545', // Rejected
+                    '#0d6efd', // Edited
+                    '#198754', // Completed
+                    '#6c757d'  // ChangeRejected
+                ];
+
+                new Chart(pieCanvas, {
+                    type: 'pie',
+                    data: {
+                        labels: statusKeys,
+                        datasets: [{
+                            data: statusValues,
+                            backgroundColor: palette.slice(0, statusKeys.length)
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: { position: 'bottom' }
+                        }
+                    }
+                });
+            }
+
+            // ---------- Bar Chart ----------
+            var barCanvas = document.getElementById('moderatorBarChart');
+            if (barCanvas) {
+                var modNames = [@Html.Raw(modNames)];
+                var modCounts = [@Html.Raw(modCounts)];
+
+                new Chart(barCanvas, {
+                    type: 'bar',
+                    data: {
+                        labels: modNames,
+                        datasets: [{
+                            label: 'Reviews handled',
+                            data: modCounts,
+                            backgroundColor: '#0d6efd'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: { display: false }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: { precision: 0 }
+                            }
+                        }
+                    }
+                });
+            }
+        });
+    </script>
+}
